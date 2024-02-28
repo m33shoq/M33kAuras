@@ -912,6 +912,32 @@ local methods = {
       notCheckable = true,
       func = function() OptionsPrivate.ExportToTable(self.data.id) end
     });
+    tinsert(self.menu, {
+      text = L["|cFF8855FFWeakAuras Sync|r"],
+      notCheckable = true,
+      func = function()
+        if GMRT and GMRT.A.WAChecker.ExternalExportWA then
+            local id = self.data.id
+            GMRT.A.WAChecker:ExternalExportWA(id)
+      end
+    end
+    });
+    tinsert(self.menu, {
+        text = "|cFF8855FFWAS|r Version",
+        notCheckable = true,
+        func = function()
+            local module = GMRT and GMRT.A.WAChecker
+            if module then
+                local id = self.data.id
+                GMRT.Options:OpenByModuleName("WAChecker")
+                module.options.filterEdit:SetText(id)
+                module.options.Filter = id:lower()
+                module.options.UpdatePage()
+                module:GetWAVer(id)
+            end
+        end
+
+    })
 
     tinsert(self.menu, {
       text = " ",

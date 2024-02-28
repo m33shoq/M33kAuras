@@ -1157,6 +1157,27 @@ function OptionsPrivate.SortDisplayButtons(filter, overrideReset, id)
   local visible = {}
 
   for id, child in pairs(displayButtons) do
+    if child.data.load.use_never then
+      child.background:SetVertexColor(1, 0.12, 0.12, 0.25)
+    else
+      child.background:SetVertexColor(0.5, 0.5, 0.5, 0.25);
+    end
+
+    if child.data.controlledChildren then
+      local anyLoaded = false
+      for aura in OptionsPrivate.Private.TraverseAllChildren(child.data) do
+        if not aura.controlledChildren and not aura.load.use_never then
+          anyLoaded = true
+          break
+        end
+      end
+      if not anyLoaded then
+        child.background:SetVertexColor(1, 0.12, 0.12, 0.25)
+      else
+        child.background:SetVertexColor(0.5, 0.5, 0.5, 0.25);
+      end
+    end
+
     if child.data.controlledChildren then
       local hasLoaded, hasStandBy, hasNotLoaded = 0, 0, 0
       for leaf in OptionsPrivate.Private.TraverseLeafs(child.data) do
