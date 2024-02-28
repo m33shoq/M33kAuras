@@ -16,6 +16,9 @@ jobs:
     env:
       GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}  # "GITHUB_TOKEN" is a secret always provided to the workflow
 
+    env:
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}  # "GITHUB_TOKEN" is a secret always provided to the workflow
+
     steps:
       - uses: actions/checkout@v6
         with:
@@ -50,14 +53,11 @@ jobs:
 
       - name: Create Package
         uses: BigWigsMods/packager@v2
-<<<<<<< HEAD
-=======
         env:
           # CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
           # WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
           # WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
->>>>>>> f67e5013 (1)
 
       # - name: Send Status to Discord
       #   uses: nebularg/actions-discord-webhook@v1
