@@ -219,10 +219,6 @@ loadedFrame:SetScript("OnEvent", function(self, event, addon)
 
       savedVars.db = db;
       savedVars.odb = odb;
-
-      if not db.disableRuLocale and WeakAuras.LoadLocaleOptions_ruRU then
-        WeakAuras.LoadLocaleOptions_ruRU()
-      end
     end
   elseif (event == "PLAYER_REGEN_DISABLED") then
     if(frame and frame:IsVisible()) then
