@@ -3,6 +3,7 @@ if not WeakAuras.IsLibsOK() then return end
 local AddonName = ...
 ---@class OptionsPrivate
 local OptionsPrivate = select(2, ...)
+WASYNC_OPTIONS_PRIVATE = OptionsPrivate
 
 -- Lua APIs
 local tinsert, tremove, wipe = table.insert, table.remove, wipe
