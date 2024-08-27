@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 name: CI-PR
 
 on:
@@ -82,3 +83,89 @@ jobs:
           webhook_url: ${{ secrets.WEBHOOK_URL }}
           status: ${{ job.status }}
         if: failure()
+=======
+# name: CI-PR
+
+# on:
+#   pull_request_target:
+#     types: [opened, reopened, synchronize, labeled]
+
+# jobs:
+#   permission_check:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions-cool/check-user-permission@v2
+#         id: check-permission
+#         with:
+#           require: write
+#           username: ${{ github.triggering_actor }}
+#     outputs:
+#       require-result: ${{ steps.check-permission.outputs.require-result }}
+
+#   build:
+#     runs-on: ubuntu-latest
+#     needs: [permission_check]
+#     outputs:
+#       artifact-id: ${{ steps.upload-artifact.outputs.artifact-id}}
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+#           ref: ${{ github.event.pull_request.head.sha }}
+
+#       - name: Install and run Luacheck
+#         uses: nebularg/actions-luacheck@v1
+#         with:
+#           args: "--no-color -q"
+#           annotate: warning
+
+#       - name: Update Build Date
+#         run: sed -i "s/@build-time@/`date +%Y%m%d%H%M%S`/" WeakAuras/Init.lua
+
+#       - name: Flag Experimental Build
+#         run: |
+#           sed -i \
+#           -e "s/--\[=====\[@non-experimental@/--@non-experimental@/" \
+#           -e "s/--@end-non-experimental@\]=====\]/--@end-non-experimental/" WeakAuras/Init.lua
+
+#       - name: Create Package
+#         uses: BigWigsMods/packager@v2
+#         with:
+#           args: -d -z
+
+#       - uses: actions/upload-artifact@v4
+#         if: ${{ needs.permission_check.outputs.require-result == 'true' && contains(github.event.pull_request.labels.*.name, '🆕 Feature Preview')}}
+#         id: upload-artifact
+#         with:
+#           name: WeakAuras-PR#${{ github.event.number }}-${{ github.sha }}
+#           path: .release/
+
+#   advertise:
+#     runs-on: ubuntu-latest
+#     needs: [permission_check, build]
+#     if: ${{ needs.permission_check.outputs.require-result == 'true' && needs.build.result == 'success' && contains(github.event.pull_request.labels.*.name, '🆕 Feature Preview')}}
+#     steps:
+#       - id: datestr
+#         run: echo "datestr=$(date)" >> $GITHUB_OUTPUT
+
+#       - uses: exercism/pr-commenter-action@v1.5.1
+#         with:
+#           github-token: ${{ github.token }}
+#           config-file: ".github/pr-commenter.yml"
+#           template-variables: |
+#             {
+#               "datestr": "${{ steps.datestr.outputs.datestr }}",
+#               "sha": "${{ github.event.pull_request.head.sha }}",
+#               "repository": "${{ github.repository }}",
+#               "build_id": "${{ needs.build.outputs.artifact-id }}",
+#               "run_id": "${{ github.run_id }}"
+#             }
+
+#       - name: Send Status to Discord
+#         uses: nebularg/actions-discord-webhook@v1
+#         with:
+#           webhook_url: ${{ secrets.WEBHOOK_URL }}
+#           status: ${{ job.status }}
+#         if: failure()
+
+>>>>>>> 93af4d15 (disable pull_request workflow)
