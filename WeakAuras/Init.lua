@@ -2,6 +2,7 @@
 local AddonName = ...
 ---@class Private
 local Private = select(2, ...)
+WASYNC_MAIN_PRIVATE = Private
 
 ---@class WeakAuras
 WeakAuras = {}
