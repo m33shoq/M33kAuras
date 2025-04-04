@@ -3943,6 +3943,17 @@ Private.update_categories = {
     default = true,
     label = L["Meta Data"],
   },
+  {
+    name = "wasync",
+    fields = {
+      "exrtLastSync",
+      "exrtLastSender",
+      "exrtUpdateConfig",
+      "exrtDefaultLoadNever",
+    },
+    default = false,
+    label = "WASync settings",
+  },
 }
 
 -- fields that are handled as special cases when importing
