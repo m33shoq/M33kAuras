@@ -53,6 +53,9 @@ local FixDebuffClass
 if WeakAuras.IsRetail() then
   local LibDispell = LibStub("LibDispel-1.0")
   FixDebuffClass = function(debuffClass, spellId)
+    if issecretvalue(spellId) then
+      return "none"
+    end
     if debuffClass == nil then
       local bleedList = LibDispell:GetBleedList()
       if bleedList[spellId] then
@@ -149,6 +152,7 @@ local unitVisible = {}
 -- Work around a issue where UnitExists returns true for nameplates even
 -- if the nameplate doesn't exist anymore
 local function UnitExistsFixed(unit)
+  if true then return false end
   if #unit > 9 and unit:sub(1, 9) == "nameplate" then
     return nameplateExists[unit] or false
   end

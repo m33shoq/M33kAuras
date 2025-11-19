@@ -1529,6 +1529,7 @@ end
 
 -- Encounter stuff
 local function StoreBossGUIDs()
+  if true then return end
   Private.StartProfileSystem("boss_guids")
   if (WeakAuras.CurrentEncounter and WeakAuras.CurrentEncounter.boss_guids) then
     for i = 1, 10 do
