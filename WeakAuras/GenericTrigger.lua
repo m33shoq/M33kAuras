@@ -890,18 +890,7 @@ function Private.ScanEvents(event, arg1, arg2, ...)
     Private.StopProfileSystem("generictrigger " .. system)
     return
   end
-  if(event == "COMBAT_LOG_EVENT_UNFILTERED") then
-    local arg1, arg2 = CombatLogGetCurrentEventInfo();
-
-    event_list = event_list[arg2];
-    if (not event_list) then
-      Private.StopProfileSystem("generictrigger " .. system)
-      return;
-    end
-    Private.ScanEventsInternal(event_list, event, CombatLogGetCurrentEventInfo());
-  else
-    Private.ScanEventsInternal(event_list, event, arg1, arg2, ...);
-  end
+  Private.ScanEventsInternal(event_list, event, arg1, arg2, ...);
   Private.StopProfileSystem("generictrigger " .. system)
 end
 
@@ -1221,11 +1210,7 @@ function HandleEvent(frame, event, arg1, arg2, ...)
   end
 
   if not(WeakAuras.IsPaused()) then
-    if(event == "COMBAT_LOG_EVENT_UNFILTERED") then
-      Private.ScanEvents(event);
-    else
-      Private.ScanEvents(event, arg1, arg2, ...);
-    end
+    Private.ScanEvents(event, arg1, arg2, ...);
   end
   if (event == "PLAYER_ENTERING_WORLD") then
     timer:ScheduleTimer(function()
@@ -1283,13 +1268,7 @@ function GenericTrigger.UnloadDisplays(toUnload)
   for id in pairs(toUnload) do
     loaded_auras[id] = nil
     for eventname, events in pairs(loaded_events) do
-      if(eventname == "COMBAT_LOG_EVENT_UNFILTERED") then
-        for subeventname, subevents in pairs(events) do
-          subevents[id] = nil;
-        end
-      else
-        events[id] = nil;
-      end
+      events[id] = nil;
     end
     for unit, events in pairs(loaded_unit_events) do
       for eventname, auras in pairs(events) do
@@ -1327,15 +1306,8 @@ function GenericTrigger.Rename(oldid, newid)
   events[oldid] = nil;
 
   for eventname, events in pairs(loaded_events) do
-    if(eventname == "COMBAT_LOG_EVENT_UNFILTERED") then
-      for subeventname, subevents in pairs(events) do
-        subevents[oldid] = subevents[newid];
-        subevents[oldid] = nil;
-      end
-    else
-      events[newid] = events[oldid];
-      events[oldid] = nil;
-    end
+    events[newid] = events[oldid];
+    events[oldid] = nil;
   end
 
   for unit, events in pairs(loaded_unit_events) do
@@ -1421,16 +1393,8 @@ function LoadEvent(id, triggernum, data)
   if data.events then
     for index, event in pairs(data.events) do
       loaded_events[event] = loaded_events[event] or {};
-      if(event == "COMBAT_LOG_EVENT_UNFILTERED" and data.subevents) then
-        for i, subevent in pairs(data.subevents) do
-          loaded_events[event][subevent] = loaded_events[event][subevent] or {};
-          loaded_events[event][subevent][id] = loaded_events[event][subevent][id] or {}
-          loaded_events[event][subevent][id][triggernum] = data;
-        end
-      else
-        loaded_events[event][id] = loaded_events[event][id] or {};
-        loaded_events[event][id][triggernum] = data;
-      end
+      loaded_events[event][id] = loaded_events[event][id] or {};
+      loaded_events[event][id][triggernum] = data;
     end
   end
   if (data.internal_events) then
@@ -1524,8 +1488,10 @@ function GenericTrigger.LoadDisplays(toLoad, loadEvent, ...)
   end
 
   for event in pairs(eventsToRegister) do
-    xpcall(frame.RegisterEvent, trueFunction, frame, event)
-    genericTriggerRegisteredEvents[event] = true;
+    if event ~= "COMBAT_LOG_EVENT_UNFILTERED" then
+      xpcall(frame.RegisterEvent, trueFunction, frame, event)
+      genericTriggerRegisteredEvents[event] = true;
+    end
   end
 
   for unit, events in pairs(unitEventsToRegister) do
@@ -1818,24 +1784,12 @@ function GenericTrigger.Add(data, region)
             for index, event in pairs(rawEvents) do
               -- custom events in the form of event:unit1:unit2:unitX are registered with RegisterUnitEvent
               local trueEvent
-              local hasParam = false
-              local isCLEU = false
               local isTrigger = false
               local isUnitEvent = false
-              if event == "CLEU" or event == "COMBAT_LOG_EVENT_UNFILTERED" then
-                warnAboutCLEUEvents = true
-              end
               for i in event:gmatch("[^:]+") do
                 if not trueEvent then
                   trueEvent = string.upper(i)
-                  isCLEU = trueEvent == "CLEU" or trueEvent == "COMBAT_LOG_EVENT_UNFILTERED"
                   isTrigger = trueEvent == "TRIGGER"
-                elseif isCLEU then
-                  local subevent = string.upper(i)
-                  if Private.IsCLEUSubevent(subevent) then
-                    tinsert(trigger_subevents, subevent)
-                    hasParam = true
-                  end
                 elseif Private.InternalEventByIDList[trueEvent] then
                   tinsert(trigger_events, trueEvent..":"..i)
                 elseif trueEvent:match("^UNIT_") or Private.UnitEventList[trueEvent] then
@@ -1867,12 +1821,7 @@ function GenericTrigger.Add(data, region)
                   end
                 end
               end
-              if isCLEU then
-                if hasParam then
-                  tinsert(trigger_events, "COMBAT_LOG_EVENT_UNFILTERED")
-                  -- We don't register CLEU events without parameters anymore
-                end
-              elseif isUnitEvent then
+              if isUnitEvent then
                 -- not added to trigger_events
               elseif isTrigger then
                 -- not added to trigger_events
@@ -2000,255 +1949,6 @@ end
 --# Support code for triggers #
 --#############################
 
--- Swing timer support code
-do
-  local mh = GetInventorySlotInfo("MainHandSlot")
-  local oh = GetInventorySlotInfo("SecondaryHandSlot")
-  local ranged = WeakAuras.IsClassicOrWrath() and GetInventorySlotInfo("RangedSlot")
-
-  local swingTimerFrame;
-  local lastSwingMain, lastSwingOff, lastSwingRange;
-  local swingDurationMain, swingDurationOff, swingDurationRange, mainSwingOffset;
-  local mainTimer, offTimer, rangeTimer;
-  local selfGUID;
-  local mainSpeed, offSpeed = UnitAttackSpeed("player")
-  local casting = false
-  local skipNextAttack, skipNextAttackCount
-  local isAttacking
-
-  ---@param hand string
-  ---@return number duration
-  ---@return number expirationTime
-  ---@return string? weaponName
-  ---@return number? icon
-  function WeakAuras.GetSwingTimerInfo(hand)
-    if(hand == "main") then
-      local itemId = GetInventoryItemID("player", mh);
-      local name, _, _, _, _, _, _, _, _, icon = C_Item.GetItemInfo(itemId or 0);
-      if(lastSwingMain) then
-        return swingDurationMain, lastSwingMain + swingDurationMain - mainSwingOffset, name, icon;
-      elseif WeakAuras.IsRetail() and lastSwingRange then
-        return swingDurationRange, lastSwingRange + swingDurationRange, name, icon;
-      else
-        return 0, math.huge, name, icon;
-      end
-    elseif(hand == "off") then
-      local itemId = GetInventoryItemID("player", oh);
-      local name, _, _, _, _, _, _, _, _, icon = C_Item.GetItemInfo(itemId or 0);
-      if(lastSwingOff) then
-        return swingDurationOff, lastSwingOff + swingDurationOff, name, icon;
-      else
-        return 0, math.huge, name, icon;
-      end
-    elseif(hand == "ranged") then
-      local itemId = GetInventoryItemID("player", ranged);
-      local name, _, _, _, _, _, _, _, _, icon = C_Item.GetItemInfo(itemId or 0);
-      if (lastSwingRange) then
-        return swingDurationRange, lastSwingRange + swingDurationRange, name, icon;
-      else
-        return 0, math.huge, name, icon;
-      end
-    end
-
-    return 0, math.huge;
-  end
-
-  local function swingTriggerUpdate()
-    Private.ScanEvents("SWING_TIMER_UPDATE")
-  end
-
-  local function swingEnd(hand)
-    if(hand == "main") then
-      lastSwingMain, swingDurationMain, mainSwingOffset = nil, nil, nil;
-    elseif(hand == "off") then
-      lastSwingOff, swingDurationOff = nil, nil;
-    elseif(hand == "ranged") then
-      lastSwingRange, swingDurationRange = nil, nil;
-    end
-    swingTriggerUpdate()
-  end
-
-  local function swingStart(hand)
-    mainSpeed, offSpeed = UnitAttackSpeed("player")
-    offSpeed = offSpeed or 0
-    local currentTime = GetTime()
-    if hand == "main" then
-      lastSwingMain = currentTime
-      swingDurationMain = mainSpeed
-      mainSwingOffset = 0
-      if mainTimer then
-        timer:CancelTimer(mainTimer)
-      end
-      if mainSpeed and mainSpeed > 0 then
-        mainTimer = timer:ScheduleTimerFixed(swingEnd, mainSpeed, hand)
-      else
-        swingEnd(hand)
-      end
-    elseif hand == "off" then
-      lastSwingOff = currentTime
-      swingDurationOff = offSpeed
-      if offTimer then
-        timer:CancelTimer(offTimer)
-      end
-      if offSpeed and offSpeed > 0 then
-        offTimer = timer:ScheduleTimerFixed(swingEnd, offSpeed, hand)
-      else
-        swingEnd(hand)
-      end
-    elseif hand == "ranged" then
-      local rangeSpeed = UnitRangedDamage("player")
-      lastSwingRange = currentTime
-      swingDurationRange = rangeSpeed
-      if rangeTimer then
-        timer:CancelTimer(rangeTimer)
-      end
-      if rangeSpeed and rangeSpeed > 0 then
-        rangeTimer = timer:ScheduleTimerFixed(swingEnd, rangeSpeed, hand)
-      else
-        swingEnd(hand)
-      end
-    end
-  end
-
-  local function swingTimerCLEUCheck(ts, event, _, sourceGUID, _, _, _, destGUID, _, _, _, ...)
-    Private.StartProfileSystem("generictrigger swing");
-    if(sourceGUID == selfGUID) then
-      if event == "SPELL_EXTRA_ATTACKS" then
-        skipNextAttack = ts
-        skipNextAttackCount = select(4, ...)
-      elseif(event == "SWING_DAMAGE" or event == "SWING_MISSED") then
-        if tonumber(skipNextAttack) and (ts - skipNextAttack) < 0.04 and tonumber(skipNextAttackCount) then
-          if skipNextAttackCount > 0 then
-            skipNextAttackCount = skipNextAttackCount - 1
-            return
-          end
-        end
-        local isOffHand = select(event == "SWING_DAMAGE" and 10 or 2, ...);
-        if not isOffHand then
-          swingStart("main")
-        elseif(isOffHand) then
-          swingStart("off")
-        end
-        swingTriggerUpdate()
-      end
-    elseif (destGUID == selfGUID and (... == "PARRY" or select(4, ...) == "PARRY")) then
-      if (lastSwingMain) then
-        local timeLeft = lastSwingMain + swingDurationMain - GetTime() - (mainSwingOffset or 0);
-        if (timeLeft > 0.2 * swingDurationMain) then
-          local offset = 0.4 * swingDurationMain
-          if (timeLeft - offset < 0.2 * swingDurationMain) then
-            offset = timeLeft - 0.2 * swingDurationMain
-          end
-          timer:CancelTimer(mainTimer);
-          mainTimer = timer:ScheduleTimerFixed(swingEnd, timeLeft - offset, "main");
-          mainSwingOffset = (mainSwingOffset or 0) + offset
-          swingTriggerUpdate()
-        end
-      end
-    end
-    Private.StopProfileSystem("generictrigger swing");
-  end
-
-  local function swingTimerCheck(event, unit, guid, spell)
-    if event ~= "PLAYER_EQUIPMENT_CHANGED" and unit and unit ~= "player" then return end
-    Private.StartProfileSystem("generictrigger swing");
-    local now = GetTime()
-    if event == "UNIT_ATTACK_SPEED" then
-      local mainSpeedNew, offSpeedNew = UnitAttackSpeed("player")
-      offSpeedNew = offSpeedNew or 0
-      if lastSwingMain then
-        if mainSpeedNew ~= mainSpeed then
-          timer:CancelTimer(mainTimer)
-          local multiplier = mainSpeedNew / mainSpeed
-          local timeLeft = (lastSwingMain + swingDurationMain - now) * multiplier
-          swingDurationMain = mainSpeedNew
-          mainSwingOffset = (lastSwingMain + swingDurationMain) - (now + timeLeft)
-          mainTimer = timer:ScheduleTimerFixed(swingEnd, timeLeft, "main")
-        end
-      end
-      if lastSwingOff then
-        if offSpeedNew ~= offSpeed then
-          timer:CancelTimer(offTimer)
-          local multiplier = offSpeedNew / mainSpeed
-          local timeLeft = (lastSwingOff + swingDurationOff - now) * multiplier
-          swingDurationOff = offSpeedNew
-          offTimer = timer:ScheduleTimerFixed(swingEnd, timeLeft, "off")
-        end
-      end
-      mainSpeed, offSpeed = mainSpeedNew, offSpeedNew
-      swingTriggerUpdate()
-    elseif casting and (event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_FAILED") then
-      casting = false
-    elseif event == "PLAYER_EQUIPMENT_CHANGED" and isAttacking then
-      swingStart("main")
-      swingStart("off")
-      swingStart("ranged")
-      swingTriggerUpdate()
-    elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-      if Private.reset_swing_spells[spell] or casting then
-        if casting then
-          casting = false
-        end
-        -- check next frame
-        swingTimerFrame:SetScript("OnUpdate", function(self)
-          if isAttacking then
-            swingStart("main")
-            swingTriggerUpdate()
-          end
-          self:SetScript("OnUpdate", nil)
-        end)
-      end
-      if Private.reset_ranged_swing_spells[spell] then
-        if WeakAuras.IsClassicOrWrath() then
-          swingStart("ranged")
-        else
-          swingStart("main")
-        end
-        swingTriggerUpdate()
-      end
-    elseif event == "UNIT_SPELLCAST_START" then
-      if not Private.noreset_swing_spells[spell] then
-        -- pause swing timer
-        casting = true
-        lastSwingMain, swingDurationMain, mainSwingOffset = nil, nil, nil
-        lastSwingOff, swingDurationOff = nil, nil
-        swingTriggerUpdate()
-      end
-    elseif event == "PLAYER_ENTER_COMBAT" then
-      isAttacking = true
-    elseif event == "PLAYER_LEAVE_COMBAT" then
-      isAttacking = nil
-    end
-    Private.StopProfileSystem("generictrigger swing");
-  end
-
-  ---@private
-  function WeakAuras.InitSwingTimer()
-    if not(swingTimerFrame) then
-      swingTimerFrame = CreateFrame("Frame");
-      swingTimerFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
-      swingTimerFrame:RegisterEvent("PLAYER_ENTER_COMBAT");
-      swingTimerFrame:RegisterEvent("PLAYER_LEAVE_COMBAT");
-      swingTimerFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED");
-      swingTimerFrame:RegisterUnitEvent("UNIT_ATTACK_SPEED", "player");
-      swingTimerFrame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player");
-      if WeakAuras.IsClassicOrWrath() then
-        swingTimerFrame:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
-        swingTimerFrame:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", "player")
-        swingTimerFrame:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", "player")
-      end
-      swingTimerFrame:SetScript("OnEvent",
-        function(_, event, ...)
-          if event == "COMBAT_LOG_EVENT_UNFILTERED" then
-            swingTimerCLEUCheck(CombatLogGetCurrentEventInfo())
-          else
-            swingTimerCheck(event, ...)
-          end
-        end);
-      selfGUID = UnitGUID("player");
-    end
-  end
-end
 
 -- CD/Rune/GCD support code
 do

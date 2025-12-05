@@ -148,11 +148,6 @@ local function GetCustomTriggerOptions(data, triggernum)
           for i in event:gmatch("[^:]+") do
             if not trueEvent then
               trueEvent = string.upper(i)
-            elseif trueEvent == "CLEU" or trueEvent == "COMBAT_LOG_EVENT_UNFILTERED" then
-              local subevent = string.upper(i)
-              if not OptionsPrivate.Private.IsCLEUSubevent(subevent) then
-                return "|cFFFF0000"..L["%s is not a valid SubEvent for COMBAT_LOG_EVENT_UNFILTERED"]:format(subevent)
-              end
             elseif trueEvent:match("^UNIT_") then
               local unit = string.lower(i)
               if not OptionsPrivate.Private.baseUnitId[unit] and not OptionsPrivate.Private.multiUnitId[unit] then
@@ -171,12 +166,6 @@ local function GetCustomTriggerOptions(data, triggernum)
           end
         end
 
-        -- Check for warnings
-        for _, event in pairs(WeakAuras.split(events)) do
-          if event == "CLEU" or event == "COMBAT_LOG_EVENT_UNFILTERED" then
-            return "|cFFFF0000"..L["COMBAT_LOG_EVENT_UNFILTERED with no filter can trigger frame drops in raid environment."]
-          end
-        end
         return ""
       end,
       width = WeakAuras.doubleWidth,
@@ -197,10 +186,6 @@ local function GetCustomTriggerOptions(data, triggernum)
           for i in event:gmatch("[^:]+") do
             if not trueEvent then
               trueEvent = string.upper(i)
-            elseif trueEvent == "CLEU" or trueEvent == "COMBAT_LOG_EVENT_UNFILTERED" then
-              if not OptionsPrivate.Private.IsCLEUSubevent(string.upper(i)) then
-                return false
-              end
             elseif trueEvent:match("^UNIT_") then
               local unit = string.lower(i)
               if not OptionsPrivate.Private.baseUnitId[unit] then
@@ -218,12 +203,7 @@ local function GetCustomTriggerOptions(data, triggernum)
             end
           end
         end
-        -- Check for warnings
-        for _, event in pairs(WeakAuras.split(events)) do
-          if event == "CLEU" or event == "COMBAT_LOG_EVENT_UNFILTERED" then
-            return false
-          end
-        end
+
         return true
       end
     },

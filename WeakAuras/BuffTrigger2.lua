@@ -4299,7 +4299,6 @@ end
 function BuffTrigger.InitMultiAura()
   if not multiAuraFrame then
     multiAuraFrame = CreateFrame("Frame")
-    multiAuraFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     multiAuraFrame:RegisterEvent("UNIT_TARGET")
     multiAuraFrame:RegisterEvent("UNIT_AURA")
     multiAuraFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
@@ -4319,9 +4318,7 @@ end
 function BuffTrigger.HandleMultiEvent(frame, event, ...)
   local system = "bufftrigger2 - multi - " .. event
   Private.StartProfileSystem(system)
-  if event == "COMBAT_LOG_EVENT_UNFILTERED" then
-    CombatLog(CombatLogGetCurrentEventInfo())
-  elseif event == "UNIT_TARGET" then
+  if event == "UNIT_TARGET" then
     TrackUid(...)
   elseif Private.player_target_events[event] then
     TrackUid(Private.player_target_events[event])
