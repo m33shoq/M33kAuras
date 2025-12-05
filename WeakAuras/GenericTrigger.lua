@@ -1638,8 +1638,8 @@ function GenericTrigger.Add(data, region)
           if not(trigger.event) then
             error("Improper arguments to WeakAuras.Add - trigger type is \"event\" but event is not defined");
           elseif not(event_prototypes[trigger.event]) then
-            if(event_prototypes["Health"]) then
-              trigger.event = "Health";
+            if(event_prototypes["Conditions"]) then
+              trigger.event = "Conditions";
             else
               error("Improper arguments to WeakAuras.Add - no event prototype can be found for event type \""..trigger.event.."\" and default prototype reset failed.");
             end
