@@ -5818,8 +5818,8 @@ function Private.ensurePRDFrame()
     end
 
     -- Calculate size of self nameplate
-    local prdWidth;
-    local prdHeight;
+    local prdWidth = 1;
+    local prdHeight = 1;
 
     if (KuiNameplatesCore and KuiNameplatesCore.profile) then
       prdWidth = KuiNameplatesCore.profile.frame_width_personal;
