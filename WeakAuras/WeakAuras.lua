@@ -5888,32 +5888,32 @@ function Private.ensurePRDFrame()
 
   personalRessourceDisplayFrame.eventHandler = function(self, event, nameplate)
     Private.StartProfileSystem("prd");
-    if (event == "NAME_PLATE_UNIT_ADDED") then
-      if (UnitIsUnit(nameplate, "player")) then
-        local frame = C_NamePlate.GetNamePlateForUnit("player");
-        if (frame) then
-          if (Plater and frame.unitFrame.PlaterOnScreen) then
-            personalRessourceDisplayFrame:Attach(frame, frame.unitFrame.healthBar, frame.unitFrame.powerBar);
-          elseif (frame.kui and frame.kui.bg and frame.kui:IsShown()) then
-            personalRessourceDisplayFrame:Attach(frame.kui, KuiNameplatesPlayerAnchor, KuiNameplatesPlayerAnchor);
-          elseif (ElvUIPlayerNamePlateAnchor) then
-            personalRessourceDisplayFrame:Attach(ElvUIPlayerNamePlateAnchor, ElvUIPlayerNamePlateAnchor, ElvUIPlayerNamePlateAnchor);
-          else
-            personalRessourceDisplayFrame:Attach(frame, frame.UnitFrame.healthBar, NamePlateDriverFrame.classNamePlatePowerBar);
-          end
-          personalRessourceDisplayFrame:Show();
-          db.personalRessourceDisplayFrame = db.personalRessourceDisplayFrame or {};
-        else
-          personalRessourceDisplayFrame:Detach();
-          personalRessourceDisplayFrame:Hide();
-        end
-      end
-    elseif (event == "NAME_PLATE_UNIT_REMOVED") then
-      if (UnitIsUnit(nameplate, "player")) then
-        personalRessourceDisplayFrame:Detach();
-        personalRessourceDisplayFrame:Hide();
-      end
-    end
+    -- if (event == "NAME_PLATE_UNIT_ADDED") then
+    --   if (UnitIsUnit(nameplate, "player")) then
+    --     local frame = C_NamePlate.GetNamePlateForUnit("player");
+    --     if (frame) then
+    --       if (Plater and frame.unitFrame.PlaterOnScreen) then
+    --         personalRessourceDisplayFrame:Attach(frame, frame.unitFrame.healthBar, frame.unitFrame.powerBar);
+    --       elseif (frame.kui and frame.kui.bg and frame.kui:IsShown()) then
+    --         personalRessourceDisplayFrame:Attach(frame.kui, KuiNameplatesPlayerAnchor, KuiNameplatesPlayerAnchor);
+    --       elseif (ElvUIPlayerNamePlateAnchor) then
+    --         personalRessourceDisplayFrame:Attach(ElvUIPlayerNamePlateAnchor, ElvUIPlayerNamePlateAnchor, ElvUIPlayerNamePlateAnchor);
+    --       else
+    --         personalRessourceDisplayFrame:Attach(frame, frame.UnitFrame.healthBar, NamePlateDriverFrame.classNamePlatePowerBar);
+    --       end
+    --       personalRessourceDisplayFrame:Show();
+    --       db.personalRessourceDisplayFrame = db.personalRessourceDisplayFrame or {};
+    --     else
+    --       personalRessourceDisplayFrame:Detach();
+    --       personalRessourceDisplayFrame:Hide();
+    --     end
+    --   end
+    -- elseif (event == "NAME_PLATE_UNIT_REMOVED") then
+    --   if (UnitIsUnit(nameplate, "player")) then
+    --     personalRessourceDisplayFrame:Detach();
+    --     personalRessourceDisplayFrame:Hide();
+    --   end
+    -- end
     Private.StopProfileSystem("prd");
   end
 
