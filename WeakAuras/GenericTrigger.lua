@@ -539,7 +539,7 @@ end
 ---@type fun(id, triggernum, data, state, errorHandler)
 ---@return state
 function Private.ActivateEvent(id, triggernum, data, state, errorHandler)
-  WeakAuras.PurgeSecrets(state)
+  -- WeakAuras.PurgeSecrets(state)
 
   local changed = state.changed or false;
   if (state.show ~= true) then
@@ -1112,7 +1112,7 @@ local function AddFakeInformation(data, triggernum, state, eventData)
   end
   if state.progressType == "timed" then
     local expirationTime = state.expirationTime
-    if expirationTime and type(expirationTime) == "number" and expirationTime ~= math.huge and expirationTime > GetTime() then
+    if expirationTime and not issecretvalue(expirationTime) and type(expirationTime) == "number" and expirationTime ~= math.huge and expirationTime > GetTime() then
       return
     end
     state.progressType = "timed"

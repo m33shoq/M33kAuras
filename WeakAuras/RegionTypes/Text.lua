@@ -122,6 +122,14 @@ local function modify(parent, region, data)
 
   region.width = text:GetWidth();
   region.height = text:GetStringHeight();
+
+  if issecretvalue(region.width) then
+    region.width = 200
+  end
+  if issecretvalue(region.height) then
+    region.height = 30
+  end
+
   region:SetWidth(region.width);
   region:SetHeight(region.height);
 
@@ -168,6 +176,9 @@ local function modify(parent, region, data)
       end
 
       local height = text:GetStringHeight();
+      if issecretvalue(height) then
+        height = 30
+      end
 
       if(region.height ~= height) then
         region.height = height
@@ -195,7 +206,13 @@ local function modify(parent, region, data)
         text:SetParent(UIParent)
         local width = text:GetWidth();
         local height = text:GetStringHeight();
-        if(width ~= region.width or height ~= region.height ) then
+        if issecretvalue(width) then
+          width = 200
+        end
+        if issecretvalue(height) then
+          height = 30
+        end
+        if (width ~= region.width or height ~= region.height ) then
           region.width = width
           region.height = height
           region:SetWidth(region.width);
@@ -260,9 +277,9 @@ local function modify(parent, region, data)
     if self.displayText and Private.ContainsAnyPlaceHolders(self.displayText) then
       UpdateText = function()
         local textStr = Private.ReplacePlaceHolders(self.displayText, self, nil, false, formatters);
-        if textStr == "" then
-          textStr = " "
-        end
+        -- if textStr == "" then
+        --   textStr = " "
+        -- end
 
         SetText(textStr)
       end

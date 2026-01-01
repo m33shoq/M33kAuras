@@ -602,6 +602,11 @@ local function modify(parent, region, data)
         cooldown:Hide();
       end
     end
+    function region:UpdateDuration()
+      local durationObject = self.durationObject
+      cooldown:Resume()
+      cooldown:SetCooldownFromDurationObject(durationObject)
+    end
 
     function region:PreShow()
       if (cooldown.duration and cooldown.duration > 0.01 and cooldown.duration ~= math.huge and cooldown.expirationTime ~= math.huge) then
@@ -620,6 +625,7 @@ local function modify(parent, region, data)
   else
     region.UpdateValue = nil
     region.UpdateTime = nil
+    region.UpdateDuration = nil
 
     function region:Update()
       region:UpdateProgress()

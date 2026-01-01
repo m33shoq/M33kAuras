@@ -5100,6 +5100,10 @@ function Private.RunCustomTextFunc(region, customFunc)
   local duration
 
   if state then
+    if state.progressType == "durationObject" and WeakAuras.IsDurationObject(state.durationObject) then
+      expirationTime = state.durationObject:GetEndTime()
+      duration = state.durationObject:GetTotalDuration()
+    end
     if state.progressType == "timed" then
       expirationTime = state.expirationTime
       duration = state.duration
@@ -5324,9 +5328,11 @@ function Private.ReplacePlaceHolders(textStr, region, customCache, useHiddenStat
   if (not regionState and not regionValues) then
     return ""
   end
+
+  textStr = textStr:gsub("\\n", "\n");
+
   local endPos = textStr:len();
   if (endPos < 2) then
-    textStr = textStr:gsub("\\n", "\n");
     return textStr;
   end
 
@@ -5341,7 +5347,6 @@ function Private.ReplacePlaceHolders(textStr, region, customCache, useHiddenStat
         textStr = tostring(value);
       end
     end
-    textStr = textStr:gsub("\\n", "\n");
     return textStr;
   end
 
@@ -5397,8 +5402,7 @@ function Private.ReplacePlaceHolders(textStr, region, customCache, useHiddenStat
     result = result .. "%"
   end
 
-  textStr = result:gsub("\\n", "\n");
-  return textStr;
+  return result;
 end
 
 function Private.ParseTextStr(textStr, symbolCallback)
@@ -6221,6 +6225,7 @@ local textSymbols = {
 function WeakAuras.ReplaceRaidMarkerSymbols(txt)
   local start = 1
 
+  if issecretvalue(txt) then return txt end
   while true do
     local firstChar = txt:find("{", start, true)
     if not firstChar then

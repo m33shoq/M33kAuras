@@ -423,6 +423,11 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
     if self.SetAdditionalProgress then
       self:SetAdditionalProgress(nil)
     end
+  elseif progressType == "durationObject" then
+    self.durationObject = state.durationObject
+    if self.UpdateDuration then
+      self:UpdateDuration()
+    end
   elseif progressType == "number" then
     local value = state[property]
     if type(value) ~= "number" then value = 0 end
@@ -472,13 +477,13 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
       expirationTime = GetTime() + (type(remaining) == "number" and remaining or 0)
     else
       expirationTime = state[property]
-      if type(expirationTime) ~= "number" then
+      if type(expirationTime) ~= "number" or issecretvalue(expirationTime) then
         expirationTime = math.huge
       end
     end
 
     local duration = totalProperty and state[totalProperty] or 0
-    if type(duration) ~= "number" then
+    if type(duration) ~= "number" or issecretvalue(duration) then
       duration = 0
     end
     local modRate = modRateProperty and state[modRateProperty] or nil
@@ -563,11 +568,14 @@ end
 
 local autoTimedProgressSource = {-1, "timer", "expirationTime", "duration", "modRate", "inverse", "paused", "remaining", true}
 local autoStaticProgressSource = {-1, "number", "value", "total", nil, nil, nil, nil, true}
+local autoDurationObjectProgressSource = {-1, "durationObject", nil, nil, nil, nil, nil, nil, true}
 local function UpdateProgressFromAuto(self, minMaxConfig, state)
   if state.progressType == "timed"  then
     UpdateProgressFromState(self, minMaxConfig, state, autoTimedProgressSource)
-  elseif state.progressType == "static"then
+  elseif state.progressType == "static" then
     UpdateProgressFromState(self, minMaxConfig, state, autoStaticProgressSource)
+  elseif state.progressType == "durationObject" and WeakAuras.IsDurationObject(state.durationObject) then
+    UpdateProgressFromState(self, minMaxConfig, state, autoDurationObjectProgressSource)
   else
     self.minProgress, self.maxProgress = nil, nil
     self.progressType = "timed"
@@ -618,7 +626,7 @@ local function UpdateProgressFromManual(self, minMaxConfig, state, value, total)
 end
 
 local function UpdateProgressFrom(self, progressSource, minMaxConfig, state, states, parent)
-  WeakAuras.PurgeSecrets(state)
+  -- WeakAuras.PurgeSecrets(state)
 
   local trigger = progressSource and progressSource[1] or -1
 

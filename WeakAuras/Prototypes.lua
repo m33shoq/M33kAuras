@@ -10950,21 +10950,28 @@ Private.dynamic_texts = {
           return state.remaining and state.remaining >= 0 and state.remaining or nil
         end
 
-        if not state.expirationTime or not state.duration then
+        if not state.expirationTime or not state.duration or issecretvalue(state.expirationTime) or issecretvalue(state.duration) then
           return nil
         end
         local remaining = state.expirationTime - GetTime();
         return remaining >= 0 and remaining or nil
       end
+      if state.progressType == "durationObject" and WeakAuras.IsDurationObject(state.durationObject) then
+        return state.durationObject:GetRemainingDuration() or nil
+      end
     end,
     func = function(remaining, state, progressPrecision)
       progressPrecision = progressPrecision or 1
 
-      if not state or state.progressType ~= "timed" then
+      if not state or (state.progressType ~= "timed" and state.progressType ~= "durationObject") then
         return remaining
       end
       if type(remaining) ~= "number" then
         return ""
+      end
+      if issecretvalue(remaining) then
+        -- todo when secret duration formatting is a thing
+        return string.format("%.1f", remaining)
       end
 
       local remainingStr = "";
@@ -11004,13 +11011,20 @@ Private.dynamic_texts = {
         end
         return state.duration, true
       end
+      if state.progressType == "durationObject" and WeakAuras.IsDurationObject(state.durationObject) then
+        return state.durationObject:GetTotalDuration() or nil, true
+      end
     end,
     func = function(duration, state, totalPrecision)
-      if not state or state.progressType ~= "timed" then
+      if not state or (state.progressType ~= "timed" and state.progressType ~= "durationObject") then
         return duration
       end
       if type(duration) ~= "number" then
         return ""
+      end
+      if issecretvalue(duration) then
+        -- todo when secret duration formatting is a thing
+        return string.format("%.1f", duration)
       end
       local durationStr = "";
       if math.abs(duration) == math.huge or tostring(duration) == "nan" then

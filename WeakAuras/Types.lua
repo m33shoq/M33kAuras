@@ -267,6 +267,9 @@ local simpleFormatters = {
   end,
   time = {
     [0] = function(value)
+      if issecretvalue(value) and type(value) == "number" then
+        return string.format("%d", value)
+      end
       if type(value) == "string" then value = tonumber(value) end
       if type(value) == "number" then
         if value > 60 then
@@ -278,16 +281,25 @@ local simpleFormatters = {
     end,
     -- Old Blizzard
     [1] = function(value)
+      if issecretvalue(value) and type(value) == "number" then
+        return string.format("%d", value)
+      end
       local fmt, time = SecondsToTimeAbbrev(value)
       -- Remove the space between the value and unit
       return fmt:gsub(" ", ""):format(time)
     end,
     -- Modern Blizzard
     [2] = WeakAuras.IsRetail() and function(value)
+      if issecretvalue(value) and type(value) == "number" then
+        return string.format("%d", value)
+      end
       return timeFormatter:Format(value)
     end,
     -- Fixed built-in formatter
     [99] = function(value)
+      if issecretvalue(value) and type(value) == "number" then
+        return string.format("%d", value)
+      end
       if type(value) == "string" then value = tonumber(value) end
       if type(value) == "number" then
         value = ceil(value)
@@ -506,7 +518,13 @@ Private.format_types = {
       local formatter
       if threshold == 0 then
         formatter = function(value, state, trigger)
-          if type(value) ~= 'number' or value == math.huge then
+          if type(value) ~= 'number' then
+            return ""
+          end
+          if issecretvalue(value) then
+            return mainFormater(value)
+          end
+          if value == math.huge then
             return ""
           end
 
@@ -527,7 +545,13 @@ Private.format_types = {
       else
         local formatString = "%." .. precision .. "f"
         formatter = function(value, state, trigger)
-          if type(value) ~= 'number' or value == math.huge then
+          if type(value) ~= 'number' then
+            return ""
+          end
+          if issecretvalue(value) then
+            return string.format(formatString, value)
+          end
+          if value == math.huge then
             return ""
           end
 
@@ -554,7 +578,7 @@ Private.format_types = {
         -- work previously, the time formatter only formats %p and %t
         -- if the progress type is timed!
         return function(value, state, trigger)
-          if not state or state.progressType ~= "timed" then
+          if not state or (state.progressType ~= "timed" and state.progressType ~= "durationObject") then
             return value
           end
           return formatter(value, state, trigger)

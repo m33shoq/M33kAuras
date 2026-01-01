@@ -883,6 +883,17 @@ local funcs = {
     self:Scale(self.scalex, self.scaley);
   end,
   SetProgress = function(self, progress)
+    if WeakAuras.IsDurationObject(progress) then
+      local fullSize = self.bar:GetRealSize();
+      self.bar.fgMask:SetWidth(fullSize);
+      if self.inverseDirection then
+        self.bar:SetTimerDuration(progress, nil, Enum.StatusBarTimerDirection.RemainingTime)
+
+      else
+        self.bar:SetTimerDuration(progress)
+      end
+      return
+    end
     if self.inverseDirection then
       progress = 1 - progress;
     end
@@ -892,6 +903,15 @@ local funcs = {
       self.bar:SetSmoothedValue(progress);
     else
       self.bar:SetValue(progress);
+    end
+  end,
+  UpdateDuration = function(self)
+    local durationObject = self.durationObject
+    self:SetProgress(durationObject)
+
+    if self.FrameTick then
+      self.FrameTick = nil
+      self.subRegionEvents:RemoveSubscriber("FrameTick", self)
     end
   end,
   UpdateValue = function(self)
@@ -1152,7 +1172,9 @@ local function create(parent)
   region:SetResizable(true);
   region:SetResizeBounds(1, 1)
 
-  local bar = CreateFrame("Frame", nil, region);
+  local bar = CreateFrame("StatusBar", nil, region);
+  -- we need to set texture here to initialize the statusbar properly
+  bar:SetStatusBarTexture("Interface\\AddOns\\WeakAuras\\Media\\Textures\\Square_FullWhite");
   --- @cast bar table|Frame
   Mixin(bar, Private.SmoothStatusBarMixin);
 
@@ -1162,7 +1184,7 @@ local function create(parent)
   bg:SetSnapToPixelGrid(false)
   bg:SetAllPoints(bar);
 
-  local fg = bar:CreateTexture(nil, "ARTWORK");
+  local fg = bar:GetStatusBarTexture() -- bar:CreateTexture(nil, "ARTWORK");
   fg:SetTexelSnappingBias(0)
   fg:SetSnapToPixelGrid(false)
   fg:SetAllPoints(bar)

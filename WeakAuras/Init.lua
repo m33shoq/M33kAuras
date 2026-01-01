@@ -691,3 +691,11 @@ function WeakAuras.PurgeSecrets(tbl)
     end
   end
 end
+
+function WeakAuras.IsDurationObject(duration)
+  local t = type(duration)
+  if t == "userdata" and duration.GetRemainingDuration then
+    return true
+  end
+  return false
+end
