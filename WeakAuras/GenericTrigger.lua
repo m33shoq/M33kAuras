@@ -267,7 +267,7 @@ local function singleTest(arg, trigger, name, value, operator, use_exact)
   elseif (arg.type == "string" or arg.type == "select") then
     return "(".. name .." and "..name.."==" ..(number or ("\""..(tostring(value) or "").."\""))..")";
   elseif (arg.type == "number") then
-    return "(".. name .." and "..name..(operator or "==")..(number or 0) ..")";
+    return "(".. name .." and not issecretvalue(" .. name ..") and "..name..(operator or "==")..(number or 0) ..")";
   else
     -- Should be unused
     return "(".. name .." and "..name..(operator or "==")..(number or ("\""..(tostring(value) or 0).."\""))..")";
@@ -452,7 +452,7 @@ function ConstructFunction(prototype, trigger)
   end
 
   for _, v in ipairs(store) do
-    table.insert(ret, "    if (state." .. v .. " ~= " .. v .. ") then\n")
+    table.insert(ret, "    if issecretvalue(" .. v .. ") or issecretvalue(state.".. v .. ") or (state." .. v .. " ~= " .. v .. ") then\n")
     table.insert(ret, "      state." .. v .. " = " .. v .. "\n")
     table.insert(ret, "      state.changed = true\n")
     table.insert(ret, "    end\n")
