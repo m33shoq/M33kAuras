@@ -274,7 +274,7 @@ local function CreateTestForCondition(data, input, allConditionsTemplate, usedSt
     end
 
     local stateCheck = "state[" .. trigger .. "] and state[" .. trigger .. "].show and ";
-    local stateVariableCheck = string.format("state[" .. trigger .. "][%q]", variable) .. "~= nil and ";
+    local stateVariableCheck = string.format("state[" .. trigger .. "][%q] ~= nil and not issecretvalue(state[" .. trigger .. "][%q]) and ", variable, variable);
 
     local preambleString
 

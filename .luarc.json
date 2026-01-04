@@ -241,7 +241,8 @@
     "GetPrimaryTalentTree",
     "GetTalentTabInfo",
     "MenuUtil",
-        "RunNextFrame"
+        "RunNextFrame",
+        "issecretvalue"
   ],
   "runtime.version": "Lua 5.1",
   "workspace.ignoreDir": [
