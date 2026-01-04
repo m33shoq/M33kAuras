@@ -6212,7 +6212,9 @@ Private.event_prototypes = {
     events = {
       ["events"] = {
         "PLAYER_TOTEM_UPDATE",
-        "PLAYER_ENTERING_WORLD"
+        "PLAYER_ENTERING_WORLD",
+        "PLAYER_REGEN_DISABLED",
+        "PLAYER_REGEN_ENABLED"
       }
     },
     internal_events = {
@@ -6248,6 +6250,9 @@ Private.event_prototypes = {
           end
 
           local _, totemName, startTime, duration, icon, modRate, spellId = GetTotemInfo(totemType);
+          if issecretvalue(startTime) then
+            return false
+          end
           active = (startTime and startTime ~= 0);
 
           if not Private.ExecEnv.CheckTotemName(totemName, triggerTotemName, triggerTotemPattern, triggerTotemPatternOperator) then
@@ -6293,6 +6298,9 @@ Private.event_prototypes = {
           local found = false;
           for i = 1, 5 do
             local _, totemName, startTime, duration, icon, modRate, spellId = GetTotemInfo(i);
+            if issecretvalue(startTime) then
+              return false
+            end
             if ((startTime and startTime ~= 0)
               and Private.ExecEnv.CheckTotemName(totemName, triggerTotemName, triggerTotemPattern, triggerTotemPatternOperator)
               and Private.ExecEnv.CheckTotemIcon(icon, triggerTotemIcon, triggerTotemIconOperator)
@@ -6314,6 +6322,9 @@ Private.event_prototypes = {
         else -- cloning, check all slots
           for i = 1, 5 do
             local _, totemName, startTime, duration, icon, modRate, spellId = GetTotemInfo(i);
+            if issecretvalue(startTime) then
+              return false
+            end
             active = (startTime and startTime ~= 0);
 
             if not Private.ExecEnv.CheckTotemName(totemName, triggerTotemName, triggerTotemPattern, triggerTotemPatternOperator)
