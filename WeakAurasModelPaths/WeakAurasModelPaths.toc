@@ -1,5 +1,5 @@
 ## Interface: 110205, 120000
-## Title: WeakAuras Model Paths
+## Title: WeakAuras Model Paths (RG fork)
 ## Author: The WeakAuras Team
 ## Version: @project-version@
 ## IconTexture: Interface\AddOns\WeakAuras\Media\Textures\icon.blp

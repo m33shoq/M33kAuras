@@ -1,5 +1,5 @@
 ## Interface: 30405, 38000
-## Title: WeakAuras Options
+## Title: WeakAuras Options (RG fork)
 ## Author: The WeakAuras Team
 ## Version: @project-version@
 ## Notes: Options for WeakAuras

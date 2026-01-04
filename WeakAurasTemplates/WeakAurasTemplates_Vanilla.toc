@@ -1,5 +1,5 @@
 ## Interface: 11508
-## Title: WeakAuras Templates
+## Title: WeakAuras Templates (RG fork)
 ## Author: The WeakAuras Team
 ## Version: @project-version@
 ## Notes: Templates for WeakAuras

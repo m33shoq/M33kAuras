@@ -1,5 +1,5 @@
 ## Interface: 40402
-## Title: WeakAuras
+## Title: WeakAuras (RG fork)
 ## Author: The WeakAuras Team
 ## Version: @project-version@
 ## X-Flavor: Cata
