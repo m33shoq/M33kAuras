@@ -362,6 +362,12 @@ local barPrototype = {
   end,
 
   ["UpdateAdditionalBars"] = function(self)
+    if self.activeMask == "secret" then
+      for i = 1, #self.extraTextures do
+        self.extraTextures[i]:Hide();
+      end
+      return
+    end
     if (type(self.additionalBars) == "table") then
       for index, additionalBar in ipairs(self.additionalBars) do
         if (not self.extraTextures[index]) then
@@ -378,6 +384,12 @@ local barPrototype = {
 
         local startProgress = 0;
         local endProgress = 0;
+        if issecretvalue(additionalBar.min) then
+          additionalBar.min = 0
+        end
+        if issecretvalue(additionalBar.max) then
+          additionalBar.max = 1
+        end
 
         if (additionalBar.min and additionalBar.max) then
           if (valueWidth ~= 0) then
@@ -397,14 +409,20 @@ local barPrototype = {
 
           local width = additionalBar.width or 0;
           local offset = additionalBar.offset or 0;
-
+          if issecretvalue(width) then
+            width = 0
+          end
+          if issecretvalue(offset) then
+            offset = 0
+          end
+          local value = issecretvalue(self.value) and 0 or self.value;
           if (width ~= 0 and valueWidth ~= 0) then
             if (forwardDirection) then
-              startProgress = self.value + offset / valueWidth;
-              endProgress = self.value + (width + offset) / valueWidth;
+              startProgress = value + offset / valueWidth;
+              endProgress = value + (width + offset) / valueWidth;
             else
-              startProgress = self.value - (width + offset) / valueWidth;
-              endProgress = self.value - offset / valueWidth;
+              startProgress = value - (width + offset) / valueWidth;
+              endProgress = value - offset / valueWidth;
             end
           end
         end
@@ -947,6 +965,7 @@ local funcs = {
     else
       self.bar.spark:Show()
     end
+    self.bar:UpdateAdditionalBars();
   end,
   UpdateSecretMaskInverse = function(self, force)
     -- if we want to set reversed progress for secret values we have to play with mask anchoring
