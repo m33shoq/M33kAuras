@@ -425,6 +425,8 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
     end
   elseif progressType == "durationObject" then
     self.durationObject = state.durationObject
+    -- reset these values to allow using ticks
+    self.minProgress, self.maxProgress = 0, 1
     if self.UpdateDuration then
       self:UpdateDuration()
     end

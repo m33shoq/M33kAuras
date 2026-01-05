@@ -259,6 +259,11 @@ local funcs = {
     local width = self.parentMajorSize
 
     local minValue, maxValue = self.parent:GetMinMaxProgress()
+    if issecretvalue(minValue) or issecretvalue(maxValue) then
+      self.hasProgress[i] = false
+      self:UpdateVisible(i)
+      return
+    end
     local valueRange = maxValue - minValue
     local inverse = self.inverse_direction
 
@@ -285,7 +290,7 @@ local funcs = {
           else
             tick_placement = self.progressData[i].expirationTime - GetTime() + self.tick_placements[i]
           end
-        elseif self.progressData[i].progressType == "static" then
+        elseif self.progressData[i].progressType == "static" and not issecretvalue(self.progressData[i].value) then
           tick_placement = self.progressData[i].value + self.tick_placements[i]
         end
       end
