@@ -2689,7 +2689,7 @@ Private.event_prototypes = {
         type = "string",
         multiline = true,
         store = true,
-        init = "select(6, strsplit('-', UnitGUID(unit) or ''))",
+        init = "not issecretvalue(UnitGUID(unit)) and select(6, strsplit('-', UnitGUID(unit) or ''))",
         conditionType = "string",
         preamble = "local npcIdChecker = Private.ExecEnv.ParseStringCheck(%q)",
         test = "npcIdChecker:Check(npcId)",
@@ -3612,7 +3612,7 @@ Private.event_prototypes = {
         type = "string",
         multiline = true,
         store = true,
-        init = "select(6, strsplit('-', UnitGUID(unit) or ''))",
+        init = "not issecretvalue(UnitGUID(unit)) and select(6, strsplit('-', UnitGUID(unit) or ''))",
         conditionType = "string",
         preamble = "local npcIdChecker = Private.ExecEnv.ParseStringCheck(%q)",
         test = "npcIdChecker:Check(npcId)",
@@ -8189,7 +8189,7 @@ Private.event_prototypes = {
         type = "string",
         multiline = true,
         store = true,
-        init = "select(6, strsplit('-', UnitGUID(unit) or ''))",
+        init = "not issecretvalue(UnitGUID(unit)) and select(6, strsplit('-', UnitGUID(unit) or ''))",
         conditionType = "string",
         preamble = "local npcIdChecker = Private.ExecEnv.ParseStringCheck(%q)",
         test = "npcIdChecker:Check(npcId)",
@@ -8451,10 +8451,16 @@ Private.event_prototypes = {
         local show, expirationTime, castType, spell, icon, startTime, endTime, interruptible, spellId, remaining, _, stageTotal
 
         spell, _, icon, startTime, endTime, _, _, interruptible, spellId = WeakAuras.UnitCastingInfo(unit)
+        if issecretvalue(spell) then
+          return false
+        end
         if spell then
           castType = "cast"
         else
           spell, _, icon, startTime, endTime, _, interruptible, spellId, _, stageTotal = WeakAuras.UnitChannelInfo(unit)
+           if issecretvalue(spell) then
+            return false
+          end
           if spell then
             castType = "channel"
             if stageTotal and stageTotal > 0 then
@@ -8706,7 +8712,7 @@ Private.event_prototypes = {
         type = "string",
         multiline = true,
         store = true,
-        init = "select(6, strsplit('-', UnitGUID(unit) or ''))",
+        init = "not issecretvalue(UnitGUID(unit)) and select(6, strsplit('-', UnitGUID(unit) or ''))",
         conditionType = "string",
         preamble = "local npcIdChecker = Private.ExecEnv.ParseStringCheck(%q)",
         test = "npcIdChecker:Check(npcId)",

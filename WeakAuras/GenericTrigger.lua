@@ -3624,7 +3624,7 @@ function WeakAuras.WatchUnitChange(unit)
   watchUnitChange.unitIdToGUID[unit] = WeakAuras.UnitExistsFixed(unit) and UnitGUID(unit)
   watchUnitChange.unitExists[unit] = UnitExists(unit)
 
-  if guid then
+  if guid and not issecretvalue(guid) then
     watchUnitChange.GUIDToUnitIds[guid] = watchUnitChange.GUIDToUnitIds[guid] or {}
     watchUnitChange.GUIDToUnitIds[guid][unit] = true
   end
