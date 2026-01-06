@@ -366,7 +366,7 @@ local function CreateTestForCondition(data, input, allConditionsTemplate, usedSt
             local op = %q
             local range = %s
             for unit in WA_IterateGroupMembers() do
-              if not UnitIsUnit(unit, "player") and WeakAuras.CheckRange(unit, range, op) then
+              if not Private.ExecEnv.UnitIsUnit(unit, "player") and WeakAuras.CheckRange(unit, range, op) then
                 found = found + 1
               end
             end

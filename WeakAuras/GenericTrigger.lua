@@ -1247,7 +1247,7 @@ local brokenUnitMap = {
 function HandleUnitEvent(frame, event, unit, ...)
   Private.StartProfileSystem("generictrigger " .. event .. " " .. unit);
   if not(WeakAuras.IsPaused()) then
-    if UnitIsUnit(unit, frame.unit)
+    if Private.ExecEnv.UnitIsUnit(unit, frame.unit)
        or (brokenUnitMap[unit] == frame.unit and not UnitExists(unit))
     then
       Private.ScanUnitEvents(event, frame.unit, ...);

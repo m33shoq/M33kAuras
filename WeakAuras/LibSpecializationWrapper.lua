@@ -104,7 +104,7 @@ if LibSpec then
   end
 
   function Private.LibSpecWrapper.SpecForUnit(unit)
-    if UnitIsUnit(unit, "player") then
+    if Private.ExecEnv.UnitIsUnit(unit, "player") then
       return (LibSpec.MySpecialization())
     end
 
@@ -114,7 +114,7 @@ if LibSpec then
   end
 
   function Private.LibSpecWrapper.SpecRolePositionForUnit(unit)
-    if UnitIsUnit(unit, "player") then
+    if Private.ExecEnv.UnitIsUnit(unit, "player") then
       return LibSpec.MySpecialization()
     end
     local data = nameToSpecMap[GetUnitName(unit, true)]
@@ -152,7 +152,7 @@ if LibSpec then
 
   if WeakAuras.IsRetail() then
     function Private.LibSpecWrapper.CheckTalentForUnit(unit, talentId)
-      if UnitIsUnit(unit, "player") then
+      if Private.ExecEnv.UnitIsUnit(unit, "player") then
         return select(4, WeakAuras.GetTalentById(talentId))
       end
       local unitName = GetUnitName(unit, true)
@@ -269,7 +269,7 @@ if LibSpec then
     end
 
     function Private.LibSpecWrapper.CheckTalentForUnit(unit, talentId)
-      if UnitIsUnit(unit, "player") then
+      if Private.ExecEnv.UnitIsUnit(unit, "player") then
         return select(4, WeakAuras.GetTalentById(talentId))
       end
       local unitName = GetUnitName(unit, true)

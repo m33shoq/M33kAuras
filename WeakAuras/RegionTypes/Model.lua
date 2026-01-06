@@ -158,7 +158,7 @@ local function ConfigureModel(region, model, data)
     end
     model:SetScript("OnEvent", function(self, event, unitId)
       Private.StartProfileSystem("model");
-      if (event ~= "UNIT_MODEL_CHANGED" or UnitIsUnit(unitId, unit)) then
+      if (event ~= "UNIT_MODEL_CHANGED" or Private.ExecEnv.UnitIsUnit(unitId, unit)) then
         WeakAuras.SetModel(model, nil, data.model_fileId, data.modelIsUnit, data.modelDisplayInfo)
         if data.advance then
           model:SetAnimation(data.sequence)
