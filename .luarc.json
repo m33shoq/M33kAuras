@@ -242,7 +242,8 @@
     "GetTalentTabInfo",
     "MenuUtil",
         "RunNextFrame",
-        "issecretvalue"
+        "issecretvalue",
+        "GREMINDER"
   ],
   "runtime.version": "Lua 5.1",
   "workspace.ignoreDir": [

@@ -3321,17 +3321,24 @@ Private.event_prototypes = {
           -- Soul Shards, this mirrors the ShardBar in the wow sources
           table.insert(ret, [[
             local shardModifier = UnitPowerDisplayMod(powerType)
-            local power = UnitPower(unit, powerType, true) / shardModifier
-            local total = math.max(1, UnitPowerMax(unit, powerType, true)) / shardModifier
-            if Private.ExecEnv.GetSpecialization() ~= SPEC_WARLOCK_DESTRUCTION then
-              power = floor(power)
+            local power = UnitPower(unit, powerType, true)
+            local total = UnitPowerMax(unit, powerType, true)
+            if not issecretvalue(power) and not issecretvalue(total) then
+              power = power / shardModifier
+              total = math.max(1, total) / shardModifier
+              if Private.ExecEnv.GetSpecialization() ~= SPEC_WARLOCK_DESTRUCTION then
+                power = floor(power)
+              end
             end
           ]])
         elseif powerType == 99 then
           table.insert(ret, ([[
             local power = UnitStagger(unit) or 0
             local scaleStagger = %s
-            local total = math.max(1, UnitHealthMax(unit) * scaleStagger)
+            local total = UnitHealthMax(unit)
+            if not issecretvalue(total) then
+              total = math.max(1, total * scaleStagger)
+            end
           ]]):format(trigger.use_scaleStagger and trigger.scaleStagger or 1))
         elseif powerType == 4 and trigger.unit == 'player' then
           table.insert(ret, ([[
@@ -3344,12 +3351,18 @@ Private.event_prototypes = {
             end
 
             local power = UnitPower(unit, powerType)
-            local total = math.max(1, UnitPowerMax(unit, powerType))
+            local total = UnitPowerMax(unit, powerType)
+            if not issecretvalue(total) then
+              total = math.max(1, total)
+            end
           ]]))
         else
           table.insert(ret, [[
             local power = UnitPower(unit, powerType)
-            local total = math.max(1, UnitPowerMax(unit, powerType))
+            local total = UnitPowerMax(unit, powerType)
+            if not issecretvalue(total) then
+              total = math.max(1, total)
+            end
           ]])
         end
       elseif WeakAuras.IsMists() and powerType == 99 then
