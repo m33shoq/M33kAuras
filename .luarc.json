@@ -243,7 +243,8 @@
     "MenuUtil",
         "RunNextFrame",
         "issecretvalue",
-        "GREMINDER"
+        "GREMINDER",
+        "C_Secrets"
   ],
   "runtime.version": "Lua 5.1",
   "workspace.ignoreDir": [

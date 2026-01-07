@@ -1758,6 +1758,9 @@ local function scanForLoadsImpl(toCheck, event, arg1, ...)
     pvp = UnitIsPVPFreeForAll("player") or UnitIsPVP("player")
   end
 
+
+  local addonRestrictionsActive = WeakAuras.IsSecretStateActive()
+
   local changed = 0;
   local shouldBeLoaded, couldBeLoaded;
   local parentsToCheck = {}
@@ -1782,8 +1785,8 @@ local function scanForLoadsImpl(toCheck, event, arg1, ...)
         shouldBeLoaded = loadFunc and loadFunc("ScanForLoads_Auras", inCombat, alive, inEncounter, inPetBattle, vehicle, vehicleUi, mounted, class, specId, player, realm, guild, race, faction, playerLevel, role, position, raidRole, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex)
         couldBeLoaded =  loadOpt and loadOpt("ScanForLoads_Auras",   inCombat, alive, inEncounter, inPetBattle, vehicle, vehicleUi, mounted, class, specId, player, realm, guild, race, faction, playerLevel, role, position, raidRole, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex)
       elseif WeakAuras.IsRetail() then
-        shouldBeLoaded = loadFunc and loadFunc("ScanForLoads_Auras", inCombat, alive, inEncounter, warmodeActive, inPetBattle, vehicle, vehicleUi, dragonriding, mounted, specId, player, realm, guild, race, faction, playerLevel, effectiveLevel, role, position, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex, affixes)
-        couldBeLoaded =  loadOpt and loadOpt("ScanForLoads_Auras",   inCombat, alive, inEncounter, warmodeActive, inPetBattle, vehicle, vehicleUi, dragonriding, mounted, specId, player, realm, guild, race, faction, playerLevel, effectiveLevel, role, position, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex, affixes)
+        shouldBeLoaded = loadFunc and loadFunc("ScanForLoads_Auras", inCombat, alive, inEncounter, warmodeActive, inPetBattle, vehicle, vehicleUi, dragonriding, mounted, addonRestrictionsActive, specId, player, realm, guild, race, faction, playerLevel, effectiveLevel, role, position, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex, affixes)
+        couldBeLoaded =  loadOpt and loadOpt("ScanForLoads_Auras",   inCombat, alive, inEncounter, warmodeActive, inPetBattle, vehicle, vehicleUi, dragonriding, mounted, addonRestrictionsActive, specId, player, realm, guild, race, faction, playerLevel, effectiveLevel, role, position, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex, affixes)
       end
 
       if(shouldBeLoaded and not loaded[id]) then
@@ -1916,6 +1919,11 @@ if WeakAuras.IsRetail() then
   Private.callbacks:RegisterCallback("WA_DRAGONRIDING_UPDATE", function ()
     Private.StartProfileSystem("load");
     Private.ScanForLoads(nil, "WA_DRAGONRIDING_UPDATE")
+    Private.StopProfileSystem("load");
+  end)
+  Private.callbacks:RegisterCallback("WA_SECRET_STATE_UPDATE", function ()
+    Private.StartProfileSystem("load");
+    Private.ScanForLoads(nil, "WA_SECRET_STATE_UPDATE")
     Private.StopProfileSystem("load");
   end)
 end

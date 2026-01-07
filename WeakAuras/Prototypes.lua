@@ -1466,6 +1466,15 @@ Private.load_prototype = {
       events = {"PLAYER_MOUNT_DISPLAY_CHANGED"}
     },
     {
+      name = "addonRestrictionsActive",
+      display = L["Secret Restrictions Active"],
+      type = "tristate",
+      init = "arg",
+      optional = true,
+      events = {"WA_SECRET_STATE_UPDATE"},
+      desc = L["Whether addon secret restrictions applied by Combat, Encounter, PvP match or active Mythic+ dungeon are currently active."],
+    },
+    {
       name = "hardcore",
       display = L["Hardcore"],
       type = "tristate",
@@ -9946,6 +9955,9 @@ Private.event_prototypes = {
       if (trigger.use_HasPet ~= nil) then
         AddUnitChangeInternalEvents("pet", events)
       end
+      if trigger.use_secret_state ~= nil then
+        tinsert(events, "WA_SECRET_STATE_UPDATE")
+      end
 
       return events;
     end,
@@ -10060,6 +10072,12 @@ Private.event_prototypes = {
         init = "WeakAuras.InstanceTypeRaw()",
         enable = WeakAuras.IsRetail(),
         hidden = not WeakAuras.IsRetail(),
+      },
+      {
+        name = "secret_state",
+        display = L["Secret Restrictions Active"],
+        type = "tristate",
+        init = "WeakAuras.IsSecretStateActive()",
       },
     },
     automaticrequired = true,

@@ -65,6 +65,7 @@ AuraEnvironment.lua
 AuraEnvironmentWrappedSystems.lua
 DebugLog.lua
 Dragonriding.lua
+Secrets.lua
 
 # Region support
 RegionTypes\SmoothStatusBarMixin.lua
