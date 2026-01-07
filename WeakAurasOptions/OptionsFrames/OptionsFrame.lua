@@ -354,7 +354,7 @@ function OptionsPrivate.CreateFrame()
   tipFrame:Hide()
   frame.tipFrame = tipFrame
 
-  local tipPopup = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+  local tipPopup = CreateFrame("Frame", nil, frame, "BackdropTemplateWeakAuras")
   tipPopup:SetFrameStrata("FULLSCREEN")
   tipPopup:SetBackdrop({
     bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",

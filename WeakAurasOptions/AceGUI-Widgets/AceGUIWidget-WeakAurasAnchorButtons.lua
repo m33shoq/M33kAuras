@@ -81,7 +81,7 @@ local function Constructor()
   label:SetJustifyH("CENTER");
   label:SetPoint("TOP", frame, "TOP");
 
-  local background = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+  local background = CreateFrame("Frame", nil, frame, "BackdropTemplateWeakAuras")
   background:SetSize(frameWidth, frameHeight)
   background:SetPoint("TOP", frame, "TOP", 0, -(titleHeight + 4))
   background:SetBackdrop({

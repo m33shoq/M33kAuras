@@ -122,7 +122,7 @@ local function create(parent)
   region.updatedChildren = {}
   region.sortStates = {}
   region.growStates = {}
-  local background = CreateFrame("Frame", nil, region, "BackdropTemplate")
+  local background = CreateFrame("Frame", nil, region, "BackdropTemplateWeakAuras")
   region.background = background
   region.selfPoint = "TOPLEFT"
   region.controlPoints = CreateObjectPool(createControlPoint, releaseControlPoint)

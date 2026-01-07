@@ -1025,7 +1025,7 @@ AlignmentLines.ShowLinesFor = function(self, ctrlKey, region, sizePoint)
 end
 
 local function ConstructMoverSizer(parent)
-  local frame = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+  local frame = CreateFrame("Frame", nil, parent, "BackdropTemplateWeakAuras")
   frame:SetBackdrop({
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
     edgeSize = 12,

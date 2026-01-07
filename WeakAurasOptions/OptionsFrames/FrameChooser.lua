@@ -41,7 +41,7 @@ function OptionsPrivate.StartFrameChooser(data, path)
   local frame = OptionsPrivate.Private.OptionsFrame();
   if not(frameChooserFrame) then
     frameChooserFrame = CreateFrame("Frame");
-    frameChooserBox = CreateFrame("Frame", nil, frameChooserFrame, "BackdropTemplate");
+    frameChooserBox = CreateFrame("Frame", nil, frameChooserFrame, "BackdropTemplateWeakAuras");
     frameChooserBox:SetFrameStrata("TOOLTIP");
     frameChooserBox:SetBackdrop({
       edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",

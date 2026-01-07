@@ -337,7 +337,7 @@ local function Constructor()
   local extraButtons = {};
   extraButtons[0] = button;
 
-  local scrollBG = CreateFrame("Frame", nil, frame, "BackdropTemplate")
+  local scrollBG = CreateFrame("Frame", nil, frame, "BackdropTemplateWeakAuras")
   scrollBG:SetBackdrop(backdrop)
   scrollBG:SetBackdropColor(0, 0, 0)
   scrollBG:SetBackdropBorderColor(0.4, 0.4, 0.4)

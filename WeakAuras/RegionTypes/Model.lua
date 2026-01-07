@@ -96,7 +96,7 @@ local function create(parent)
   region:SetResizeBounds(1, 1)
 
   -- Border region
-  local border = CreateFrame("Frame", nil, region, "BackdropTemplate");
+  local border = CreateFrame("Frame", nil, region, "BackdropTemplateWeakAuras");
   region.border = border;
 
   Private.regionPrototype.create(region);
