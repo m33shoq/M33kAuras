@@ -113,6 +113,20 @@ WeakAuras.WA_Utf8Sub = WA_Utf8Sub
 local WA_ClassColorName = function(unit, maxlen)
   if unit and UnitExists(unit) then
     local name = WeakAuras.UnitName(unit)
+    if issecretvalue(name) then
+      local GUID = UnitGUID(unit)
+      if not GUID then
+        return name
+      end
+
+      local _, englishClass = GetPlayerInfoByGUID(GUID)
+      if not englishClass then
+        return name
+      end
+
+      local classColor = C_ClassColor.GetClassColor(englishClass)
+      return classColor:WrapTextInColorCode(name)
+    end
     if maxlen and maxlen > 0 then
       name = WA_Utf8Sub(name, maxlen)
     end
