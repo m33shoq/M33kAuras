@@ -607,6 +607,7 @@ local function modify(parent, region, data)
     end
     function region:UpdateDuration()
       local durationObject = self.durationObject
+      cooldown.inverse = self.inverse
       cooldown:Resume()
       cooldown:SetCooldownFromDurationObject(durationObject)
     end

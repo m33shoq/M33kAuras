@@ -424,7 +424,9 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
       self:SetAdditionalProgress(nil)
     end
   elseif progressType == "durationObject" then
+    local inverse = inverseProperty and state[inverseProperty]
     self.durationObject = state.durationObject
+    self.inverse = inverse
     -- reset these values to allow using ticks
     self.minProgress, self.maxProgress = 0, 1
     if self.UpdateDuration then
@@ -576,7 +578,7 @@ end
 
 local autoTimedProgressSource = {-1, "timer", "expirationTime", "duration", "modRate", "inverse", "paused", "remaining", true}
 local autoStaticProgressSource = {-1, "number", "value", "total", nil, nil, nil, nil, true}
-local autoDurationObjectProgressSource = {-1, "durationObject", nil, nil, nil, nil, nil, nil, true}
+local autoDurationObjectProgressSource = {-1, "durationObject", nil, nil, nil, "inverse", nil, nil, true}
 local function UpdateProgressFromAuto(self, minMaxConfig, state)
   if state.progressType == "timed"  then
     UpdateProgressFromState(self, minMaxConfig, state, autoTimedProgressSource)

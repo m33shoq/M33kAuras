@@ -908,13 +908,6 @@ local funcs = {
     self:Scale(self.scalex, self.scaley);
   end,
   SetProgress = function(self, progress)
-    if WeakAuras.IsDurationObject(progress) then
-      self:UseSecretMask()
-      self:UpdateSecretMaskInverse()
-      self.secretBar:SetTimerDuration(progress)
-      return
-    end
-
     self:UseNormalMask()
     if self.inverseDirection then
       progress = 1 - progress;
@@ -927,15 +920,20 @@ local funcs = {
       self.bar:SetValue(progress);
     end
   end,
-  SetProgressSecret = function(self, value, total)
+  SetProgressSecret = function(self)
     self:UseSecretMask()
     self:UpdateSecretMaskInverse()
 
-    self.secretBar:SetMinMaxValues(self.minProgress, self.maxProgress)
-    if self.smoothProgress then
-      self.secretBar:SetValue(self.value, Enum.StatusBarInterpolation.ExponentialEaseOut);
-    else
-      self.secretBar:SetValue(self.value)
+    if self.secretProgress == "duration" and WeakAuras.IsDurationObject(self.durationObject) then
+      local timerDirection = not self.inverse and Enum.StatusBarTimerDirection.RemainingTime or nil
+      self.secretBar:SetTimerDuration(self.durationObject, nil, timerDirection or nil)
+    elseif self.secretProgress == "value" then
+      self.secretBar:SetMinMaxValues(self.minProgress, self.maxProgress)
+      if self.smoothProgress then
+        self.secretBar:SetValue(self.value, Enum.StatusBarInterpolation.ExponentialEaseOut);
+      else
+        self.secretBar:SetValue(self.value)
+      end
     end
   end,
   UseNormalMask = function(self)
@@ -970,11 +968,11 @@ local funcs = {
   UpdateSecretMaskInverse = function(self, force)
     -- if we want to set reversed progress for secret values we have to play with mask anchoring
     local inverse = self.inverseDirection
-    local inverseValue = inverse and self.effectiveOrientation or false
-    if self.secretMaskInversed == inverseValue and not force then
+    local effectiveInverse = inverse and self.effectiveOrientation or false
+    if self.secretMaskInversed == effectiveInverse and not force then
       return
     end
-    self.secretMaskInversed = inverseValue
+    self.secretMaskInversed = effectiveInverse
 
     -- we have to add those 0.01 offsets to avoid situations when mask becomes invisible and stops working
     local OFFSET = 0.01
@@ -982,27 +980,27 @@ local funcs = {
     if not inverse then
       self.bar.fgMaskSecret:SetPoint("TOPLEFT", self.secretBar:GetStatusBarTexture(), "TOPLEFT", -OFFSET, OFFSET)
       self.bar.fgMaskSecret:SetPoint("BOTTOMRIGHT", self.secretBar:GetStatusBarTexture(), "BOTTOMRIGHT")
-    elseif inverseValue == "HORIZONTAL" then
+    elseif effectiveInverse == "HORIZONTAL" then
       self.bar.fgMaskSecret:SetPoint("BOTTOMRIGHT", self.secretBar:GetStatusBarTexture(), "BOTTOMLEFT")
       self.bar.fgMaskSecret:SetPoint("TOPLEFT", self.bar, "TOPLEFT", -OFFSET, OFFSET)
       self.secretBar:SetReverseFill(true)
-    elseif inverseValue == "HORIZONTAL_INVERSE" then
+    elseif effectiveInverse == "HORIZONTAL_INVERSE" then
       self.bar.fgMaskSecret:SetPoint("TOPLEFT", self.secretBar:GetStatusBarTexture(), "TOPRIGHT", -OFFSET, OFFSET)
       self.bar.fgMaskSecret:SetPoint("BOTTOMRIGHT", self.bar, "BOTTOMRIGHT")
       self.secretBar:SetReverseFill(false)
-    elseif inverseValue == "VERTICAL" then
+    elseif effectiveInverse == "VERTICAL" then
       self.bar.fgMaskSecret:SetPoint("BOTTOMRIGHT", self.secretBar:GetStatusBarTexture(), "TOPRIGHT")
       self.bar.fgMaskSecret:SetPoint("TOPLEFT", self.bar, "TOPLEFT", -OFFSET, OFFSET)
       self.secretBar:SetReverseFill(false)
-    elseif inverseValue == "VERTICAL_INVERSE" then
+    elseif effectiveInverse == "VERTICAL_INVERSE" then
       self.bar.fgMaskSecret:SetPoint("TOPLEFT", self.secretBar:GetStatusBarTexture(), "BOTTOMLEFT", -OFFSET, OFFSET)
       self.bar.fgMaskSecret:SetPoint("BOTTOMRIGHT", self.bar, "BOTTOMRIGHT")
       self.secretBar:SetReverseFill(true)
     end
   end,
   UpdateDuration = function(self)
-    local durationObject = self.durationObject
-    self:SetProgress(durationObject)
+    self.secretProgress = "duration"
+    self:SetProgressSecret()
 
     if self.FrameTick then
       self.FrameTick = nil
@@ -1010,8 +1008,10 @@ local funcs = {
     end
   end,
   UpdateValue = function(self)
+    -- self.inverse = nil -- we don't want this field to affect "static" progress
     if issecretvalue(self.value) or issecretvalue(self.total) then
-      self:SetProgressSecret(self.value, self.total)
+      self.secretProgress = "value"
+      self:SetProgressSecret()
     else
       local progress = 0;
       if (self.total ~= 0) then
@@ -1027,6 +1027,7 @@ local funcs = {
     end
   end,
   UpdateTime = function(self)
+    self.secretProgress = nil
     local remaining = self.expirationTime - GetTime();
     local progress = self.duration ~= 0 and remaining / self.duration or 0;
     if self.inverse then
