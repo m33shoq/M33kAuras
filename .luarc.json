@@ -244,7 +244,8 @@
         "RunNextFrame",
         "issecretvalue",
         "GREMINDER",
-        "C_Secrets"
+        "C_Secrets",
+        "hasanysecretvalues"
   ],
   "runtime.version": "Lua 5.1",
   "workspace.ignoreDir": [

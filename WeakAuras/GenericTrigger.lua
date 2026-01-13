@@ -452,7 +452,7 @@ function ConstructFunction(prototype, trigger)
   end
 
   for _, v in ipairs(store) do
-    table.insert(ret, "    if issecretvalue(" .. v .. ") or issecretvalue(state.".. v .. ") or (state." .. v .. " ~= " .. v .. ") then\n")
+    table.insert(ret, "    if hasanysecretvalues(" .. v .. ", state." .. v .. ") or (state." .. v .. " ~= " .. v .. ") then\n")
     table.insert(ret, "      state." .. v .. " = " .. v .. "\n")
     table.insert(ret, "      state.changed = true\n")
     table.insert(ret, "    end\n")
@@ -2387,7 +2387,7 @@ do
 
       local spellDetail = self.data[effectiveSpellId]
       local chargesChanged, chargesDifference = true, 0
-      if not issecretvalue(spellDetail.charges) and not issecretvalue(charges) and not issecretvalue(spellCount) and not issecretvalue(spellDetail.count) then
+      if not hasanysecretvalues(spellDetail.charges, charges, spellCount, spellDetail.count) then
         chargesChanged = spellDetail.charges ~= charges or spellDetail.count ~= spellCount
           or spellDetail.chargesMax ~= maxCharges
         chargesDifference = (charges or spellCount or 0) - (spellDetail.charges or spellDetail.count or 0)
@@ -3463,7 +3463,7 @@ function WeakAuras.WatchUnitChange(unit)
       local oldGUID = watchUnitChange.unitIdToGUID[unitA]
       local newGUID = WeakAuras.UnitExistsFixed(unitA) and UnitGUID(unitA)
       local unitExists = UnitExists(unitA) -- UnitExistsFixed check both UnitExists and UnitGUID, but in edge cases we are interested in UnitExists
-      if  issecretvalue(newGUID) or issecretvalue(oldGUID) then
+      if  hasanysecretvalues(newGUID, oldGUID) then
         return
       end
       if oldGUID ~= newGUID or oldUnitExists ~= unitExists then

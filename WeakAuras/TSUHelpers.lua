@@ -72,7 +72,7 @@ local function recurseReplaceOrUpdate(t1, t2, isRoot, replace)
           changed = true
         end
       else
-        if t1[k] ~= v then
+        if hasanysecretvalues(t1[k], v) or t1[k] ~= v then
           t1[k] = v
           changed = true
         end

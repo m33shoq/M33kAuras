@@ -3727,7 +3727,7 @@ local function actionGlowStart(actions, frame, id)
 end
 
 function Private.ExecEnv.UnitIsUnit(unit1, unit2)
-  if issecretvalue(unit1) or issecretvalue(unit2) then
+  if hasanysecretvalues(unit1, unit2) then
     return false
   end
   local res = UnitIsUnit(unit1, unit2)

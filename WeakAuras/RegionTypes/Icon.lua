@@ -568,7 +568,7 @@ local function modify(parent, region, data)
   cooldown:Hide()
   if(data.cooldown) then
     function region:UpdateValue()
-      if issecretvalue(self.value) or issecretvalue(self.total) then
+      if hasanysecretvalues(self.value, self.total) then
         return
       end
       cooldown.value = self.value

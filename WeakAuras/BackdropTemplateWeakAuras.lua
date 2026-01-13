@@ -82,7 +82,7 @@ function BackdropTemplateWeakAurasMixin:SetupTextureCoordinates()
 	local height = self:GetHeight();
 	local effectiveScale = self:GetEffectiveScale();
 	local edgeSize = self:GetEdgeSize();
-  if issecretvalue(width) or issecretvalue(height) or issecretvalue(effectiveScale) or issecretvalue(edgeSize) then
+  if hasanysecretvalues(width, height, effectiveScale, edgeSize) then
     return;
   end
 	local edgeRepeatX = max(0, (width / edgeSize) * effectiveScale - 2 - coordStart);

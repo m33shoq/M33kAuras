@@ -3332,7 +3332,7 @@ Private.event_prototypes = {
             local shardModifier = UnitPowerDisplayMod(powerType)
             local power = UnitPower(unit, powerType, true)
             local total = UnitPowerMax(unit, powerType, true)
-            if not issecretvalue(power) and not issecretvalue(total) then
+            if not hasanysecretvalues(power, total) then
               power = power / shardModifier
               total = math.max(1, total) / shardModifier
               if Private.ExecEnv.GetSpecialization() ~= SPEC_WARLOCK_DESTRUCTION then
@@ -11020,7 +11020,7 @@ Private.dynamic_texts = {
           return state.remaining and state.remaining >= 0 and state.remaining or nil
         end
 
-        if not state.expirationTime or not state.duration or issecretvalue(state.expirationTime) or issecretvalue(state.duration) then
+        if not state.expirationTime or not state.duration or hasanysecretvalues(state.expirationTime, state.duration) then
           return nil
         end
         local remaining = state.expirationTime - GetTime();

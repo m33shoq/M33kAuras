@@ -611,7 +611,7 @@ local funcs = {
     end
   end,
   UpdateValue = function(self)
-    if issecretvalue(self.value) or issecretvalue(self.total) then
+    if hasanysecretvalues(self.value, self.total) then
       return
     end
     local progress = 1

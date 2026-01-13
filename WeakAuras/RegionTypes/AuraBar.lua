@@ -1009,7 +1009,7 @@ local funcs = {
   end,
   UpdateValue = function(self)
     -- self.inverse = nil -- we don't want this field to affect "static" progress
-    if issecretvalue(self.value) or issecretvalue(self.total) then
+    if hasanysecretvalues(self.value, self.total) then
       self.secretProgress = "value"
       self:SetProgressSecret()
     else

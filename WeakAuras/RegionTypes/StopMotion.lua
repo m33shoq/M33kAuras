@@ -317,7 +317,7 @@ local function modify(parent, region, data)
       end
 
       function region:UpdateValue()
-        if issecretvalue(self.value) or issecretvalue(self.total) then
+        if hasanysecretvalues(self.value, self.total) then
           return
         end
         local progress = 0;

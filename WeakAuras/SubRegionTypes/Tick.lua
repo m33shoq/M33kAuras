@@ -259,7 +259,7 @@ local funcs = {
     local width = self.parentMajorSize
 
     local minValue, maxValue = self.parent:GetMinMaxProgress()
-    if issecretvalue(minValue) or issecretvalue(maxValue) then
+    if hasanysecretvalues(minValue, maxValue) then
       self.hasProgress[i] = false
       self:UpdateVisible(i)
       return
