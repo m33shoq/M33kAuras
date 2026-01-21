@@ -11141,7 +11141,7 @@ Private.dynamic_texts = {
   },
   ["s"] = {
     get = function(state)
-      if not state or state.stacks == 0 then return "" end
+      if not state or issecretvalue(state.stacks) or state.stacks == 0 then return "" end
       return state.stacks
     end,
     func = function(v)
