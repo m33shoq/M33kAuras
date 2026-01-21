@@ -3842,6 +3842,7 @@ local unitToGuid = {}
 local guidToUnit = {}
 
 local function ReleaseUID(unit)
+  if issecretvalue(unit) then return end
   local guid = unitToGuid[unit]
   if guid then
     guidToUnit[guid][unit] = nil
@@ -3849,6 +3850,7 @@ local function ReleaseUID(unit)
 end
 
 local function SetUID(guid, unit)
+  if hasanysecretvalues(guid, unit) then return end
   ReleaseUID(unit)
 
   unitToGuid[unit] = guid
