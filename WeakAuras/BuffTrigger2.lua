@@ -4292,6 +4292,7 @@ do
 end
 
 function BuffTrigger.HandlePendingTracks(unit, GUID)
+  if hasanysecretvalues(unit, GUID) then return end
   if pendingTracks[GUID] then
     if matchDataMulti[GUID] then
       CheckAurasMulti(matchDataMulti[GUID], unit, "HELPFUL")
@@ -4336,6 +4337,7 @@ function BuffTrigger.HandleMultiEvent(frame, event, ...)
   elseif event == "UNIT_AURA" then
     local unit = ...
     local guid = UnitGUID(unit)
+    if issecretvalue(guid) then return end
     if matchDataMulti[guid] then
       CheckAurasMulti(matchDataMulti[guid], unit, "HELPFUL")
       CheckAurasMulti(matchDataMulti[guid], unit, "HARMFUL")
