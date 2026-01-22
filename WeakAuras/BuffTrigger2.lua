@@ -496,88 +496,90 @@ local function UpdateMatchData(time, matchDataChanged, unit, index, auraInstance
   local data = matchData[unit][filter][key]
   local changed = false
 
-  if data.name ~= name then
+  if hasanysecretvalues(data.name, name) or data.name ~= name then
     data.name = name
     changed = true
   end
 
-  if data.icon ~= icon then
+  if hasanysecretvalues(data.icon, icon) or data.icon ~= icon then
     data.icon = icon
     changed = true
   end
 
-  if data.stacks ~= stacks then
+  if hasanysecretvalues(data.stacks, stacks) or data.stacks ~= stacks then
     data.stacks = stacks
     changed = true
   end
 
-  if data.debuffClass ~= debuffClass then
+  if hasanysecretvalues(data.debuffClass, debuffClass) or data.debuffClass ~= debuffClass then
     data.debuffClass = debuffClass
     changed = true
   end
 
-  if data.debuffClassIcon ~= debuffClassIcon then
+  if hasanysecretvalues(data.debuffClassIcon, debuffClassIcon) or data.debuffClassIcon ~= debuffClassIcon then
     data.debuffClassIcon = debuffClassIcon
     changed = true
   end
 
-  if data.duration ~= duration then
+  if hasanysecretvalues(data.duration, duration) or data.duration ~= duration then
     data.duration = duration
     changed = true
   end
 
-  if data.expirationTime ~= expirationTime then
+  if hasanysecretvalues(data.expirationTime, expirationTime) or data.expirationTime ~= expirationTime then
     data.expirationTime = expirationTime
     changed = true
   end
 
-  if data.modRate ~= modRate then
+  if hasanysecretvalues(data.modRate, modRate) or data.modRate ~= modRate then
     data.modRate = modRate
     changed = true
   end
 
-  if data.unitCaster ~= unitCaster then
+  if hasanysecretvalues(data.unitCaster, unitCaster) or data.unitCaster ~= unitCaster then
     data.unitCaster = unitCaster
     changed = true
   end
 
   local casterName = unitCaster and UnitName(unitCaster) or ""
-  if data.casterName ~= casterName then
+  if hasanysecretvalues(data.casterName, casterName) or data.casterName ~= casterName then
     data.casterName = casterName
     changed = true
   end
 
-  if data.spellId ~= spellId then
+  if hasanysecretvalues(data.spellId, spellId) or data.spellId ~= spellId then
     data.spellId = spellId
     changed = true
   end
 
-  if data.isStealable ~= isStealable then
+  if hasanysecretvalues(data.isStealable, isStealable) or data.isStealable ~= isStealable then
     data.isStealable = isStealable
     changed = true
   end
 
-  if data.isBossDebuff ~= isBossDebuff then
+  if hasanysecretvalues(data.isBossDebuff, isBossDebuff) or data.isBossDebuff ~= isBossDebuff then
     data.isBossDebuff = isBossDebuff
     changed = true
   end
 
-  if data.isCastByPlayer ~= isCastByPlayer then
+  if hasanysecretvalues(data.isCastByPlayer, isCastByPlayer) or data.isCastByPlayer ~= isCastByPlayer then
     data.isCastByPlayer = isCastByPlayer
     changed = true
   end
 
   local unitName = UnitName(unit) or ""
-  if data.unitName ~= unitName then
+  if hasanysecretvalues(data.unitName, unitName) or data.unitName ~= unitName then
     data.unitName = unitName
     changed = true
   end
 
-  if data.tooltipUpdated and data.tooltipUpdated < time then
-    changed = data:UpdateTooltip(time) or changed
+  if not hasanysecretvalues(data.tooltipUpdated, time) then
+    if data.tooltipUpdated and data.tooltipUpdated < time then
+      changed = data:UpdateTooltip(time) or changed
+    end
   end
 
-  if not ArrayCompare(points, data.points) then
+  if not issecretvalue(data.points) and not ArrayCompare(points, data.points) then
     data.points = points
     changed = true
   end
@@ -779,29 +781,29 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
     local changed = false
     state.time = time
 
-    if state.unit ~= bestMatch.unit then
+    if hasanysecretvalues(state.unit, bestMatch.unit) or state.unit ~= bestMatch.unit then
       state.unit = bestMatch.unit
       changed = true
     end
 
     local GUID = bestMatch.unit and UnitGUID(bestMatch.unit) or bestMatch.GUID
-    if state.GUID ~= GUID then
+    if hasanysecretvalues(state.GUID, GUID) or state.GUID ~= GUID then
       state.GUID = GUID
       changed = true
     end
 
-    if state.role ~= role then
+    if hasanysecretvalues(state.role, role) or state.role ~= role then
       state.role = role
       state.roleIcon = roleIcons[role]
       changed = true
     end
 
-    if state.raidMark ~= raidMark then
+    if hasanysecretvalues(state.raidMark, raidMark) or state.raidMark ~= raidMark then
       state.raidMark = raidMark
       changed = true
     end
 
-    if state.unitName ~= bestMatch.unitName then
+    if hasanysecretvalues(state.unitName, bestMatch.unitName) or state.unitName ~= bestMatch.unitName then
       state.unitName = bestMatch.unitName
       changed = true
     end
@@ -811,17 +813,17 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
       changed = true
     end
 
-    if state.name ~= bestMatch.name then
+    if hasanysecretvalues(state.name, bestMatch.name) or state.name ~= bestMatch.name then
       state.name = bestMatch.name
       changed = true
     end
 
-    if state.icon ~= bestMatch.icon then
+    if hasanysecretvalues(state.icon, bestMatch.icon) or state.icon ~= bestMatch.icon then
       state.icon = bestMatch.icon
       changed = true
     end
 
-    if state.stacks ~= bestMatch.stacks then
+    if not hasanysecretvalues(state.stacks, bestMatch.stacks) and state.stacks ~= bestMatch.stacks then
       if state.stacks and bestMatch.stacks then
         if state.stacks < bestMatch.stacks then
           state.stackGainTime = time
@@ -835,17 +837,17 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
       changed = true
     end
 
-    if state.debuffClass ~= bestMatch.debuffClass then
+    if hasanysecretvalues(state.debuffClass, bestMatch.debuffClass) or state.debuffClass ~= bestMatch.debuffClass then
       state.debuffClass = bestMatch.debuffClass
       changed = true
     end
 
-    if state.debuffClassIcon ~= debuffClassIcon then
+    if hasanysecretvalues(state.debuffClassIcon, debuffClassIcon) or state.debuffClassIcon ~= debuffClassIcon then
       state.debuffClassIcon = debuffClassIcon
       changed = true
     end
 
-    if state.duration ~= bestMatch.duration then
+    if hasanysecretvalues(state.duration, bestMatch.duration) or state.duration ~= bestMatch.duration then
       state.duration = bestMatch.duration
       changed = true
     end
@@ -856,7 +858,7 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
       changed = true
     end
 
-    if state.expirationTime ~= bestMatch.expirationTime then
+    if not hasanysecretvalues(state.expirationTime, bestMatch.expirationTime) and state.expirationTime ~= bestMatch.expirationTime then
       -- A bit fuzzy checking
       if state.expirationTime and bestMatch.expirationTime and bestMatch.expirationTime - state.expirationTime > 0.2  then
         state.refreshTime = time
@@ -865,7 +867,7 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
       changed = true
     end
 
-    if state.modRate ~= bestMatch.modRate then
+    if hasanysecretvalues(state.modRate, bestMatch.modRate) or state.modRate ~= bestMatch.modRate then
       state.modRate = bestMatch.modRate
       changed = true
     end
@@ -875,89 +877,89 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
       changed = true
     end
 
-    if state.unitCaster ~= bestMatch.unitCaster then
+    if hasanysecretvalues(state.unitCaster, bestMatch.unitCaster) or state.unitCaster ~= bestMatch.unitCaster then
       state.unitCaster = bestMatch.unitCaster
       state.casterName = bestMatch.casterName
       changed = true
     end
 
-    if state.spellId ~= bestMatch.spellId then
+    if hasanysecretvalues(state.spellId, bestMatch.spellId) or state.spellId ~= bestMatch.spellId then
       state.spellId = bestMatch.spellId
       changed = true
     end
 
-    if state.index ~= bestMatch.index then
+    if hasanysecretvalues(state.index, bestMatch.index) or state.index ~= bestMatch.index then
       state.index = bestMatch.index
       changed = true
     end
 
-    if state.auraInstanceID ~= bestMatch.auraInstanceID then
+    if hasanysecretvalues(state.auraInstanceID, bestMatch.auraInstanceID) or state.auraInstanceID ~= bestMatch.auraInstanceID then
       state.auraInstanceID = bestMatch.auraInstanceID
       changed = true
     end
 
-    if state.filter ~= bestMatch.filter then
+    if hasanysecretvalues(state.filter, bestMatch.filter) or state.filter ~= bestMatch.filter then
       state.filter = bestMatch.filter
       changed = true
     end
 
-    if state.tooltip ~= bestMatch.tooltip then
+    if hasanysecretvalues(state.tooltip, bestMatch.tooltip) or state.tooltip ~= bestMatch.tooltip then
       state.tooltip = bestMatch.tooltip
       changed = true
     end
 
-    if state.tooltip1 ~= bestMatch.tooltip1 then
+    if hasanysecretvalues(state.tooltip1, bestMatch.tooltip1) or state.tooltip1 ~= bestMatch.tooltip1 then
       state.tooltip1 = bestMatch.tooltip1
       changed = true
     end
 
-    if state.tooltip2 ~= bestMatch.tooltip2 then
+    if hasanysecretvalues(state.tooltip2, bestMatch.tooltip2) or state.tooltip2 ~= bestMatch.tooltip2 then
       state.tooltip2 = bestMatch.tooltip2
       changed = true
     end
 
-    if state.tooltip3 ~= bestMatch.tooltip3 then
+    if hasanysecretvalues(state.tooltip3, bestMatch.tooltip3) or state.tooltip3 ~= bestMatch.tooltip3 then
       state.tooltip3 = bestMatch.tooltip3
       changed = true
     end
 
-    if state.tooltip4 ~= bestMatch.tooltip4 then
+    if hasanysecretvalues(state.tooltip4, bestMatch.tooltip4) or state.tooltip4 ~= bestMatch.tooltip4 then
       state.tooltip4 = bestMatch.tooltip4
       changed = true
     end
 
-    if not ArrayCompare(state.points, bestMatch.points) then
+    if not hasanysecretvalues(state.points, bestMatch.points) and not ArrayCompare(state.points, bestMatch.points) then
       state.points = bestMatch.points
       changed = true
     end
 
-    if state.matchCount ~= matchCount then
+    if hasanysecretvalues(state.matchCount, matchCount) or state.matchCount ~= matchCount then
       state.matchCount = matchCount
       changed = true
     end
 
-    if state.unitCount ~= unitCount then
+    if hasanysecretvalues(state.unitCount, unitCount) or state.unitCount ~= unitCount then
       state.unitCount = unitCount
       changed = true
     end
 
-    if state.maxUnitCount ~= maxUnitCount then
+    if hasanysecretvalues(state.maxUnitCount, maxUnitCount) or state.maxUnitCount ~= maxUnitCount then
       state.maxUnitCount = maxUnitCount
       changed = true
     end
 
-    if state.matchCountPerUnit ~= matchCountPerUnit then
+    if hasanysecretvalues(state.matchCountPerUnit, matchCountPerUnit) or state.matchCountPerUnit ~= matchCountPerUnit then
       state.matchCountPerUnit = matchCountPerUnit
       changed = true
     end
 
-    if state.affected ~= affected then
+    if hasanysecretvalues(state.affected, affected) or state.affected ~= affected then
       state.affected = affected
       state.affectedUnits = affectedUnits
       changed = true
     end
 
-    if state.unaffected ~= unaffected then
+    if hasanysecretvalues(state.unaffected, unaffected) or state.unaffected ~= unaffected then
       state.unaffected = unaffected
       state.unaffectedUnits = unaffectedUnits
       changed = true
@@ -968,7 +970,7 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
       changed = true
     end
 
-    if state.totalStacks ~= totalStacks then
+    if hasanysecretvalues(state.totalStacks, totalStacks) or state.totalStacks ~= totalStacks then
       state.totalStacks = totalStacks
       changed = true
     end
@@ -1021,12 +1023,12 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       changed = true
     end
 
-    if state.name ~= fallbackName then
+    if hasanysecretvalues(state.name, fallbackName) or state.name ~= fallbackName then
       state.name = fallbackName
       changed = true
     end
 
-    if state.icon ~= fallbackIcon then
+    if hasanysecretvalues(state.icon, fallbackIcon) or state.icon ~= fallbackIcon then
       state.icon = fallbackIcon
       changed = true
     end
@@ -1051,7 +1053,7 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       changed = true
     end
 
-    if state.expirationTime ~= math.huge then
+    if issecretvalue(state.expirationTime) or state.expirationTime ~= math.huge then
       state.expirationTime = math.huge
       changed = true
     end
@@ -1066,30 +1068,30 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       changed = true
     end
 
-    if state.unit ~= unit then
+    if hasanysecretvalues(state.unit, unit) or state.unit ~= unit then
       state.unit = unit
       changed = true
     end
 
     local GUID = unit and UnitGUID(unit)
-    if state.GUID ~= GUID then
+    if hasanysecretvalues(state.GUID, GUID) or state.GUID ~= GUID then
       state.GUID = GUID
       changed = true
     end
 
-    if state.role ~= role then
+    if hasanysecretvalues(state.role, role) or state.role ~= role then
       state.role = role
       state.roleIcon = roleIcons[role]
       changed = true
     end
 
-    if state.raidMark ~= raidMark then
+    if hasanysecretvalues(state.raidMark, raidMark) or state.raidMark ~= raidMark then
       state.raidMark = raidMark
       changed = true
     end
 
     local unitName = unit and UnitName(unit) or ""
-    if state.unitName ~= unitName then
+    if hasanysecretvalues(state.unitName, unitName) or state.unitName ~= unitName then
       state.unitName = unitName
       changed = true
     end
@@ -1099,7 +1101,7 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       changed = true
     end
 
-    if state.casterName ~= "" then
+    if hasanysecretvalues(state.casterName) or state.casterName ~= "" then
       state.casterName = ""
       changed = true
     end
@@ -1129,22 +1131,22 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       changed = true
     end
 
-    if state.matchCount ~= matchCount then
+    if hasanysecretvalues(state.matchCount, matchCount) or state.matchCount ~= matchCount then
       state.matchCount = matchCount
       changed = true
     end
 
-    if state.unitCount ~= unitCount then
+    if  hasanysecretvalues(state.unitCount, unitCount) or state.unitCount ~= unitCount then
       state.unitCount = unitCount
       changed = true
     end
 
-    if state.maxUnitCount ~= maxUnitCount then
+    if hasanysecretvalues(state.maxUnitCount, maxUnitCount) or state.maxUnitCount ~= maxUnitCount then
       state.maxUnitCount = maxUnitCount
       changed = true
     end
 
-    if state.matchCountPerUnit ~= matchCountPerUnit then
+    if hasanysecretvalues(state.matchCountPerUnit, matchCountPerUnit) or state.matchCountPerUnit ~= matchCountPerUnit then
       state.matchCountPerUnit = matchCountPerUnit
       changed = true
     end
@@ -1154,19 +1156,19 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       changed = true
     end
 
-    if state.affected ~= affected then
+    if hasanysecretvalues(state.affected, affected) or state.affected ~= affected then
       state.affected = affected
       state.affectedUnits = affectedUnits
       changed = true
     end
 
-    if state.unaffected ~= unaffected then
+    if hasanysecretvalues(state.unaffected, unaffected) or state.unaffected ~= unaffected then
       state.unaffected = unaffected
       state.unaffectedUnits = unaffectedUnits
       changed = true
     end
 
-    if state.totalStacks ~= totalStacks then
+    if hasanysecretvalues(state.totalStacks, totalStacks) or state.totalStacks ~= totalStacks then
       state.totalStacks = totalStacks
       changed = true
     end
