@@ -4140,8 +4140,11 @@ do
     if throttle_update < 0 then
       for unit, targetGUID in pairs(nameplateTargets) do
         local newTargetGUID = UnitGUID(unit.."-target")
-        if (newTargetGUID == nil and targetGUID ~= true)
-        or (newTargetGUID ~= nil and targetGUID ~= newTargetGUID)
+        if not issecretvalue(newTargetGUID) and
+        (
+          (newTargetGUID == nil and targetGUID ~= true)
+          or (newTargetGUID ~= nil and targetGUID ~= newTargetGUID)
+        )
         then
           nameplateTargets[unit] = newTargetGUID or true
           Private.ScanEvents("WA_UNIT_TARGET_NAME_PLATE", unit)
