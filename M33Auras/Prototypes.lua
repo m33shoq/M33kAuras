@@ -97,6 +97,8 @@ if M33Auras.IsRetail() then
       holdAtMaxTime, name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numStages = unpack(cacheEmpowered[unit])
       if endTime == nil
       or holdAtMaxTime == nil
+      or issecretvalue(holdAtMaxTime)
+      or issecretvalue(endTime)
       or endTime + holdAtMaxTime < GetTime()
       then -- invalid or too old data
         cacheEmpowered[unit] = nil
@@ -118,25 +120,25 @@ if M33Auras.IsRetail() then
       unit = Private.player_target_events[event]
     end
 
-    -- if event == "UNIT_SPELLCAST_EMPOWER_START"
-    -- or event == "UNIT_SPELLCAST_EMPOWER_UPDATE"
-    -- or (
-    --   (Private.player_target_events[event])
-    --   and (select(10, UnitChannelInfo(unit)) or 0) > 0  -- 10th arg of UnitChannelInfo is numStages for empowered spells
-    -- )
-    -- then
-    --   cacheEmpowered[unit] = {GetUnitEmpowerHoldAtMaxTime(unit), UnitChannelInfo(unit)}
-    -- else
-    --   cacheEmpowered[unit] = nil
-    -- end
+    if event == "UNIT_SPELLCAST_EMPOWER_START"
+    or event == "UNIT_SPELLCAST_EMPOWER_UPDATE"
+    or (
+      (Private.player_target_events[event])
+      and (select(10, UnitChannelInfo(unit)) or 0) > 0  -- 10th arg of UnitChannelInfo is numStages for empowered spells
+    )
+    then
+      cacheEmpowered[unit] = {GetUnitEmpowerHoldAtMaxTime(unit), UnitChannelInfo(unit)}
+    else
+      cacheEmpowered[unit] = nil
+    end
 
-    -- if unit == "player" and event == "UNIT_SPELLCAST_EMPOWER_START" or event == "UNIT_SPELLCAST_EMPOWER_STOP" then
-    --   local castLatencyFrame = Private.frames["Cast Latency Handler"]
-    --   if castLatencyFrame then
-    --     castLatencyFrame:GetScript("OnEvent")(nil, event, unit, ...)
-    --   end
-    -- end
-    -- Private.ScanUnitEvents(event.."_FAKE", unit, ...)
+    if unit == "player" and event == "UNIT_SPELLCAST_EMPOWER_START" or event == "UNIT_SPELLCAST_EMPOWER_STOP" then
+      local castLatencyFrame = Private.frames["Cast Latency Handler"]
+      if castLatencyFrame then
+        castLatencyFrame:GetScript("OnEvent")(nil, event, unit, ...)
+      end
+    end
+    Private.ScanUnitEvents(event.."_FAKE", unit, ...)
   end)
 else
   M33Auras.UnitChannelInfo = UnitChannelInfo
