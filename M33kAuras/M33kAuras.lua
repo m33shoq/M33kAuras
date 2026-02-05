@@ -5355,7 +5355,7 @@ local function ValueForSymbol(symbol, region, customCache, regionState, regionSt
       end
     end
     return ""
-  elseif regionState[symbol] then
+  elseif regionState[symbol] ~= nil then
     if(useHiddenStates or regionState.show) then
       local value = regionState[symbol]
       if formatters[symbol] then
