@@ -5,3 +5,4 @@
 ## IconTexture: Interface\AddOns\M33kAuras\Media\Textures\icon.blp
 ## SavedVariables: M33AurasSaved
 ## LoadSavedVariablesFirst: 1
+## LoadOnDemand: 1
