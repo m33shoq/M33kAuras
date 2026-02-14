@@ -339,6 +339,10 @@ local function create(parent, data)
   return region;
 end
 
+local cooldownAlphaCurve = C_CurveUtil.CreateCurve()
+cooldownAlphaCurve:AddPoint(0, 0)
+cooldownAlphaCurve:AddPoint(0.001, 1)
+
 local function modify(parent, region, data)
   -- Legacy members stacks and text2
   region.stacks = nil
@@ -611,6 +615,7 @@ local function modify(parent, region, data)
   if(data.cooldown) then
     function region:UpdateValue()
       if hasanysecretvalues(self.value, self.total) then
+        cooldown:Hide()
         return
       end
 
@@ -623,6 +628,7 @@ local function modify(parent, region, data)
       cooldown.modRate = nil
       if (self.value >= 0 and self.value <= self.total) then
         cooldown:Show()
+        cooldown:SetAlpha(1)
         cooldown:SetCooldown(GetTime() - (self.total - self.value), self.total)
         cooldown:Pause()
       else
@@ -638,6 +644,7 @@ local function modify(parent, region, data)
       end
       if (self.duration > 0 and self.expirationTime > GetTime() and self.expirationTime ~= math.huge) then
         cooldown:Show();
+        cooldown:SetAlpha(1)
         cooldown.expirationTime = self.expirationTime
         cooldown.duration = self.duration
         cooldown.modRate = self.modRate
@@ -652,6 +659,7 @@ local function modify(parent, region, data)
         cooldown:Hide();
       end
     end
+
     function region:UpdateDuration()
       cooldown:Show()
       cooldown:Resume()
@@ -664,6 +672,8 @@ local function modify(parent, region, data)
 
       region:UpdateEffectiveInverse()
       cooldown:SetCooldownFromDurationObject(durationObject, true)
+      local alpha = durationObject:EvaluateRemainingDuration(cooldownAlphaCurve)
+      cooldown:SetAlpha(alpha)
     end
 
     function region:PreShow()
