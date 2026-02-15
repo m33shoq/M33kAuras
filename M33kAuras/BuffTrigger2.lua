@@ -1472,9 +1472,9 @@ local function TriggerInfoApplies(triggerInfo, unit)
     return false
   end
 
-  if triggerInfo.inRange and not UnitInRangeFixed(unit) then
-    return false
-  end
+  -- if triggerInfo.inRange and not UnitInRangeFixed(unit) then
+  --   return false
+  -- end
 
   return true
 end
@@ -2683,11 +2683,11 @@ local function LoadAura(id, triggernum, triggerInfo)
     tinsert(groupScanFuncs[triggerInfo.unit], triggerInfo)
   end
 
-  if triggerInfo.inRange then
-    rangeScanFuncs[triggerInfo.unit] = rangeScanFuncs[triggerInfo.unit] or {}
-    PerUnitFrames:Register(triggerInfo.unit, "UNIT_IN_RANGE_UPDATE", triggerInfo.includePets)
-    tinsert(rangeScanFuncs[triggerInfo.unit], triggerInfo)
-  end
+  -- if triggerInfo.inRange then
+  --   rangeScanFuncs[triggerInfo.unit] = rangeScanFuncs[triggerInfo.unit] or {}
+  --   PerUnitFrames:Register(triggerInfo.unit, "UNIT_IN_RANGE_UPDATE", triggerInfo.includePets)
+  --   tinsert(rangeScanFuncs[triggerInfo.unit], triggerInfo)
+  -- end
 
   matchDataChanged[id] = matchDataChanged[id] or {}
   matchDataChanged[id][triggernum] = true
@@ -2752,14 +2752,14 @@ function BuffTrigger.UnloadDisplays(toUnload)
     end
   end
 
-  for unitType, funcs in pairs(rangeScanFuncs) do
-    for i = #funcs, 1, -1 do
-      if toUnload[funcs[i].id] then
-        PerUnitFrames:Unregister(unitType, "UNIT_IN_RANGE_UPDATE", funcs[i].includePets)
-        tremove(funcs, i)
-      end
-    end
-  end
+  -- for unitType, funcs in pairs(rangeScanFuncs) do
+  --   for i = #funcs, 1, -1 do
+  --     if toUnload[funcs[i].id] then
+  --       PerUnitFrames:Unregister(unitType, "UNIT_IN_RANGE_UPDATE", funcs[i].includePets)
+  --       tremove(funcs, i)
+  --     end
+  --   end
+  -- end
 
   for unit, unitData in pairs(activeGroupScanFuncs) do
     for triggerInfo in pairs(unitData) do
@@ -3216,7 +3216,7 @@ function BuffTrigger.Add(data)
       local effectiveIgnoreInvisible = groupTrigger and trigger.ignoreInvisible
       local effectiveNameCheck = groupTrigger and trigger.useUnitName and trigger.unitName
       local effectiveNpcId = (trigger.unit == "nameplate" or trigger.unit == "boss") and trigger.useNpcId and Private.ExecEnv.ParseStringCheck(trigger.npcId)
-      local effectiveInRange = M33kAuras.IsRetail() and groupTrigger and trigger.inRange
+      -- local effectiveInRange = M33kAuras.IsRetail() and groupTrigger and trigger.inRange
 
       if trigger.unit == "multi" then
         BuffTrigger.InitMultiAura()
@@ -3272,7 +3272,7 @@ function BuffTrigger.Add(data)
         ignoreDead = effectiveIgnoreDead,
         ignoreDisconnected = effectiveIgnoreDisconnected,
         ignoreInvisible = effectiveIgnoreInvisible,
-        inRange = effectiveInRange,
+        -- inRange = effectiveInRange,
         groupRole = effectiveGroupRole,
         raidRole = effectiveRaidRole,
         specId = effectiveSpecId,
