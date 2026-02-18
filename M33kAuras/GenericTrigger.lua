@@ -480,13 +480,15 @@ local function RunOverlayFuncs(event, state, id, errorHandler)
   for i, overlayFunc in ipairs(event.overlayFuncs) do
     state.additionalProgress[i] = state.additionalProgress[i] or {};
     local additionalProgress = state.additionalProgress[i];
-    local ok, a, b, c = xpcall(overlayFunc, errorHandler or Private.GetErrorHandlerId(id, L["Overlay %s"]:format(i)), event.trigger, state);
+    local ok, a, b, c, d, e = xpcall(overlayFunc, errorHandler or Private.GetErrorHandlerId(id, L["Overlay %s"]:format(i)), event.trigger, state);
     if (not ok) then
       additionalProgress.min = nil;
       additionalProgress.max = nil;
       additionalProgress.direction = nil;
       additionalProgress.width = nil;
       additionalProgress.offset = nil;
+      additionalProgress.durationObject = nil;
+      additionalProgress.durationObjectUseRemaining = nil;
     elseif (type(a) == "string") then
       if (additionalProgress.direction ~= a) then
         additionalProgress.direction = a;
@@ -498,6 +500,14 @@ local function RunOverlayFuncs(event, state, id, errorHandler)
       end
       if (additionalProgress.offset ~= c) then
         additionalProgress.offset = c;
+        changed = true;
+      end
+      if (additionalProgress.durationObject ~= d) then
+        additionalProgress.durationObject = d;
+        changed = true;
+      end
+      if (additionalProgress.durationObjectUseRemaining ~= e) then
+        additionalProgress.durationObjectUseRemaining = e;
         changed = true;
       end
       additionalProgress.min = nil;
@@ -513,6 +523,14 @@ local function RunOverlayFuncs(event, state, id, errorHandler)
       end
       if additionalProgress.direction then
         changed = true
+      end
+      if (additionalProgress.durationObject ~= c) then
+        additionalProgress.durationObject = c;
+        changed = true;
+      end
+      if (additionalProgress.durationObjectUseRemaining ~= d) then
+        additionalProgress.durationObjectUseRemaining = d;
+        changed = true;
       end
       additionalProgress.direction = nil;
       additionalProgress.width = nil;
@@ -1658,9 +1676,6 @@ function GenericTrigger.Add(data, region)
 
             prototype = event_prototypes[trigger.event]
             triggerFuncStr = ConstructFunction(prototype, trigger);
-            if data.id == "New 4" then
-              print(triggerFuncStr)
-            end
             statesParameter = prototype.statesParameter;
             triggerFunc = Private.LoadFunction(triggerFuncStr, id);
 
@@ -4584,7 +4599,8 @@ function GenericTrigger.GetProgressSources(data, triggernum, values)
             modRate = varData.modRate,
             inverse = varData.inverse,
             paused = varData.paused,
-            remaining = varData.remaining
+            remaining = varData.remaining,
+            useAdditionalProgress = varData.useAdditionalProgress,
           })
         end
       end
@@ -4807,6 +4823,9 @@ function GenericTrigger.GetTriggerConditions(data, triggernum)
           end
           if v.progressRemaining then
             result[v.name].remaining = v.progressRemaining
+          end
+          if v.useAdditionalProgress then
+            result[v.name].useAdditionalProgress = v.useAdditionalProgress
           end
         end
       end

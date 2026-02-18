@@ -300,6 +300,44 @@ local anchorAlignment = {
   ["VERTICAL_INVERSE"] = { "BOTTOMLEFT", "BOTTOMRIGHT", "TOP" }
 }
 
+local angleCalculations = {
+  [0] = {-1, -1, -1, 0, 0, -1, 0, 0},
+  [90] = {1, -1, 0, -1, 1, 0, 0, 0},
+  [180] = { 1, 1, 1, 0, 0, 1, 0, 0},
+  [270] = {-1, 1, 0, 1, -1, 0, 0, 0},
+}
+
+local function SetCoordsByAngle(t, angle)
+  if angleCalculations[angle] then
+    return t:SetTexCoord(unpack(angleCalculations[angle]));
+  end
+
+  angle = math.rad(angle);
+  local A, B, C, D, E, F = math.cos(angle), math.sin(angle), 1, -math.sin(angle), math.cos(angle), 1
+	local det = A*E - B*D;
+	local ULx, ULy, LLx, LLy, URx, URy, LRx, LRy;
+
+	ULx, ULy = ( B*F - C*E ) / det, ( -(A*F) + C*D ) / det;
+	LLx, LLy = ( -B + B*F - C*E ) / det, ( A - A*F + C*D ) / det;
+	URx, URy = ( E + B*F - C*E ) / det, ( -D - A*F + C*D ) / det;
+	LRx, LRy = ( E - B + B*F - C*E ) / det, ( -D + A -(A*F) + C*D ) / det;
+
+	t:SetTexCoord(ULx, ULy, LLx, LLy, URx, URy, LRx, LRy);
+end
+
+local flipPointX = {
+  TOPLEFT = "TOPRIGHT",
+  TOPRIGHT = "TOPLEFT",
+  BOTTOMLEFT = "BOTTOMRIGHT",
+  BOTTOMRIGHT = "BOTTOMLEFT"
+}
+local flipPointY = {
+  TOPLEFT = "BOTTOMLEFT",
+  TOPRIGHT = "BOTTOMRIGHT",
+  BOTTOMLEFT = "TOPLEFT",
+  BOTTOMRIGHT = "TOPRIGHT"
+}
+
 local extraTextureWrapMode = "REPEAT";
 
 -- Emulate blizzard statusbar with advanced features (more grow directions)
@@ -398,13 +436,250 @@ local barPrototype = {
   end,
 
   ["UpdateAdditionalBars"] = function(self)
-    if self.activeMask == "secret" then
-      for i = 1, #self.extraTextures do
-        self.extraTextures[i]:Hide();
-      end
-      return
-    end
     if (type(self.additionalBars) == "table") then
+      -- there are issues with how fake states trigger this without changing active mask
+      -- so just enforce it, we lost clipping but its fine until someone pokes me about it
+      -- also old thing doesn't support .durationObject for displaying progress inside overlay
+      if self.activeMask == "secret" or true then
+        for i = 1, #self.extraTextures do
+          self.extraTextures[i]:Hide();
+        end
+        for index, additionalBar in ipairs(self.additionalBars) do
+          local abar = self.secretExtraTextures[index];
+          if not abar then
+            abar = CreateFrame("StatusBar", nil, self);
+            abar:SetStatusBarTexture("Interface\\AddOns\\M33kAuras\\Media\\Textures\\Square_FullWhite");
+            abar:SetColorFill(1, 1, 1, 0);
+
+            abar.texture = abar:CreateTexture(nil, "ARTWORK");
+            abar.texture:SetDrawLayer("ARTWORK", min(index, 7));
+            abar.texture:SetTexelSnappingBias(0)
+            abar.texture:SetSnapToPixelGrid(false)
+            abar.texture:SetAllPoints(self)
+            -- we could do this to not clip texture but it would not allow to make proper coords that would match old behavior
+            -- abar.texture:SetPoint("TOPLEFT", self, "TOPLEFT", -100, 100);
+            -- abar.texture:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 100, -100);
+
+            abar.textureMask = abar:CreateMaskTexture();
+            abar.textureMask:SetPoint("TOPLEFT", abar:GetStatusBarTexture(), "TOPLEFT", -0.01, 0.01);
+            abar.textureMask:SetPoint("BOTTOMRIGHT", abar:GetStatusBarTexture(), "BOTTOMRIGHT", 0, 0);
+
+            abar.textureMask:SetTexture("Interface\\AddOns\\M33kAuras\\Media\\Textures\\Square_FullWhite",
+                    "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE", "NEAREST")
+            abar.textureMask:SetTexelSnappingBias(0)
+            abar.textureMask:SetSnapToPixelGrid(false)
+            abar.texture:AddMaskTexture(abar.textureMask);
+
+            abar.offsetBar1 = CreateFrame("StatusBar", nil, abar);
+            abar.offsetBar1:SetStatusBarTexture("Interface\\AddOns\\M33kAuras\\Media\\Textures\\Square_FullWhite");
+            abar.offsetBar1:SetColorFill(1, 1, 1, 0);
+
+            abar.offsetBar2 = CreateFrame("StatusBar", nil, abar);
+            abar.offsetBar2:SetStatusBarTexture("Interface\\AddOns\\M33kAuras\\Media\\Textures\\Square_FullWhite");
+            abar.offsetBar2:SetColorFill(1, 1, 1, 0);
+            -- borders for testing
+            -- GREMINDER.MLib:Border(abar, 2, 1, 0, 0, 1, 1)
+            -- GREMINDER.MLib:Border(abar.offsetBar1:GetStatusBarTexture(), 2, 0, 1, 0, 1, 3)
+            -- GREMINDER.MLib:Border(abar.offsetBar2:GetStatusBarTexture(), 3, 0, 0, 1, 1, 6)
+
+            self.secretExtraTextures[index] = abar;
+          end
+          if abar.offsetBarAdditional then
+            abar.offsetBarAdditional:Hide();
+          end
+          abar:Show();
+
+          local mainBarMask = self.activeMask == "secret" and self.fgMaskSecret or self.fgMask;
+
+          local min, max = additionalBar.min, additionalBar.max
+          local direction, width, offset = additionalBar.direction, additionalBar.width, additionalBar.offset
+          local durationObject, durationObjectUseRemaining = additionalBar.durationObject, additionalBar.durationObjectUseRemaining
+
+          abar.offsetBar1:SetMinMaxValues(self.additionalBarsMin, self.additionalBarsMax);
+          abar.offsetBar2:SetMinMaxValues(self.additionalBarsMin, self.additionalBarsMax);
+
+          local effectiveReverseFill = self.directionInverse;
+          if self.additionalBarsInverse then
+            effectiveReverseFill = not effectiveReverseFill;
+          end
+
+          abar.offsetBar1:ClearAllPoints();
+          abar.offsetBar2:ClearAllPoints();
+          if min and max then
+            abar.offsetBar1:SetAllPoints(self);
+            abar.offsetBar2:SetAllPoints(self);
+
+            abar.offsetBar1:SetValue(min);
+            abar.offsetBar2:SetValue(max);
+          elseif direction and width then
+            local forwardDirection = (direction or "forward") == "forward";
+            if self.additionalBarsInverse then
+              forwardDirection = not forwardDirection;
+            end
+
+            if not abar.offsetBarAdditional then
+              abar.offsetBarAdditional = CreateFrame("StatusBar", nil, abar);
+              abar.offsetBarAdditional:SetStatusBarTexture("Interface\\AddOns\\M33kAuras\\Media\\Textures\\Square_FullWhite");
+              abar.offsetBarAdditional:SetColorFill(1, 1, 1, 0);
+              abar.offsetBarAdditionalTexture = abar.offsetBarAdditional:GetStatusBarTexture();
+              -- border for testing
+              -- GREMINDER.MLib:Border(abar.offsetBarAdditionalTexture, 5, 1, 1, 1, 1, 7)
+            end
+
+            abar.offsetBarAdditional:Show();
+            abar.offsetBarAdditional:SetMinMaxValues(self.additionalBarsMin, self.additionalBarsMax);
+            abar.offsetBarAdditional:SetValue(offset or 0);
+            abar.offsetBarAdditional:ClearAllPoints();
+
+            abar.offsetBar1:SetValue(0);
+            abar.offsetBar2:SetValue(width);
+
+            if self.horizontal then
+              local barWidth = self:GetParent().width - self.iconWidth;
+              abar.offsetBar1:SetWidth(barWidth);
+              abar.offsetBar2:SetWidth(barWidth);
+              abar.offsetBarAdditional:SetWidth(barWidth);
+            else
+              local barHeight = self:GetParent().height - self.iconHeight;
+              abar.offsetBar1:SetHeight(barHeight);
+              abar.offsetBar2:SetHeight(barHeight);
+              abar.offsetBarAdditional:SetHeight(barHeight);
+            end
+
+            local maskPoint1, maskPoint2 = "TOPLEFT", "BOTTOMLEFT";
+            local maskRelativePoint1, maskRelativePoint2 = "TOPRIGHT", "BOTTOMRIGHT";
+            local offsetPoint1, offsetPoint2 = "TOPLEFT", "BOTTOMLEFT";
+            local offsetRelativePoint1, offsetRelativePoint2 = "TOPRIGHT", "BOTTOMRIGHT";
+            local flip = flipPointX
+            if not self.horizontal then
+              maskPoint1, maskPoint2 = "TOPLEFT", "TOPRIGHT";
+              maskRelativePoint1, maskRelativePoint2 = "BOTTOMLEFT", "BOTTOMRIGHT";
+              offsetPoint1, offsetPoint2 = "TOPLEFT", "TOPRIGHT";
+              offsetRelativePoint1, offsetRelativePoint2 = "BOTTOMLEFT", "BOTTOMRIGHT";
+              flip = flipPointY
+            end
+            if self.orientation == "HORIZONTAL_INVERSE" or self.orientation == "VERTICAL_INVERSE" then
+              maskPoint1, maskPoint2  = flip[maskPoint1], flip[maskPoint2];
+              maskRelativePoint1, maskRelativePoint2 = flip[maskRelativePoint1], flip[maskRelativePoint2];
+              offsetPoint1, offsetPoint2 = flip[offsetPoint1], flip[offsetPoint2];
+              offsetRelativePoint1, offsetRelativePoint2 = flip[offsetRelativePoint1], flip[offsetRelativePoint2];
+            end
+
+            if self.additionalBarsInverse then
+              maskPoint1, maskPoint2  = flip[maskPoint1], flip[maskPoint2];
+              offsetPoint1, offsetPoint2 = flip[offsetPoint1], flip[offsetPoint2];
+              offsetRelativePoint1, offsetRelativePoint2 = flip[offsetRelativePoint1], flip[offsetRelativePoint2];
+            end
+
+            if direction ~= "forward" then
+              effectiveReverseFill = not effectiveReverseFill;
+              maskPoint1, maskPoint2  = flip[maskPoint1], flip[maskPoint2];
+              offsetPoint1, offsetPoint2 = flip[offsetPoint1], flip[offsetPoint2];
+              offsetRelativePoint1, offsetRelativePoint2 = flip[offsetRelativePoint1], flip[offsetRelativePoint2];
+            end
+
+            abar.offsetBarAdditional:SetPoint(maskPoint1, mainBarMask, maskRelativePoint1, 0, 0);
+            abar.offsetBarAdditional:SetPoint(maskPoint2, mainBarMask, maskRelativePoint2, 0, 0);
+
+            abar.offsetBar1:SetPoint(offsetPoint1, abar.offsetBarAdditionalTexture, offsetRelativePoint1, 0, 0);
+            abar.offsetBar1:SetPoint(offsetPoint2, abar.offsetBarAdditionalTexture, offsetRelativePoint2, 0, 0);
+            abar.offsetBar2:SetPoint(offsetPoint1, abar.offsetBarAdditionalTexture, offsetRelativePoint1, 0, 0);
+            abar.offsetBar2:SetPoint(offsetPoint2, abar.offsetBarAdditionalTexture, offsetRelativePoint2, 0, 0);
+
+            abar.offsetBarAdditional:SetReverseFill(effectiveReverseFill);
+          end
+
+          abar:ClearAllPoints();
+          if (self.orientation == "HORIZONTAL" and not effectiveReverseFill) or (self.orientation == "HORIZONTAL_INVERSE" and not effectiveReverseFill) then
+            abar:SetPoint("TOPLEFT", abar.offsetBar1:GetStatusBarTexture(), "TOPRIGHT");
+            abar:SetPoint("BOTTOMRIGHT", abar.offsetBar2:GetStatusBarTexture(), "BOTTOMRIGHT");
+          elseif (self.orientation == "HORIZONTAL_INVERSE" and effectiveReverseFill) or (self.orientation == "HORIZONTAL" and effectiveReverseFill) then
+            abar:SetPoint("TOPLEFT", abar.offsetBar2:GetStatusBarTexture(), "TOPLEFT");
+            abar:SetPoint("BOTTOMRIGHT", abar.offsetBar1:GetStatusBarTexture(), "BOTTOMLEFT");
+          elseif (self.orientation == "VERTICAL" and effectiveReverseFill) or (self.orientation == "VERTICAL_INVERSE" and effectiveReverseFill) then
+            abar:SetPoint("TOPLEFT", abar.offsetBar1:GetStatusBarTexture(), "BOTTOMLEFT");
+            abar:SetPoint("BOTTOMRIGHT", abar.offsetBar2:GetStatusBarTexture(), "BOTTOMRIGHT");
+          elseif (self.orientation == "VERTICAL_INVERSE" and not effectiveReverseFill) or (self.orientation == "VERTICAL" and not effectiveReverseFill) then
+            abar:SetPoint("TOPLEFT", abar.offsetBar2:GetStatusBarTexture(), "TOPLEFT");
+            abar:SetPoint("BOTTOMRIGHT", abar.offsetBar1:GetStatusBarTexture(), "TOPRIGHT");
+          end
+
+          abar.offsetBar1:SetReverseFill(effectiveReverseFill);
+          abar.offsetBar2:SetReverseFill(effectiveReverseFill);
+          abar:SetReverseFill(effectiveReverseFill);
+
+          if self.horizontal then
+            abar:SetOrientation("HORIZONTAL");
+            abar.offsetBar1:SetOrientation("HORIZONTAL");
+            abar.offsetBar2:SetOrientation("HORIZONTAL");
+            if abar.offsetBarAdditional then
+              abar.offsetBarAdditional:SetOrientation("HORIZONTAL");
+            end
+          else
+            abar:SetOrientation("VERTICAL");
+            abar.offsetBar1:SetOrientation("VERTICAL");
+            abar.offsetBar2:SetOrientation("VERTICAL");
+            if abar.offsetBarAdditional then
+              abar.offsetBarAdditional:SetOrientation("VERTICAL");
+            end
+          end
+
+          if durationObject and M33kAuras.IsDurationObject(durationObject) then
+            -- elapsed is default
+            local durDirection = durationObjectUseRemaining and Enum.StatusBarTimerDirection.RemainingTime or nil
+            abar:SetTimerDuration(durationObject, nil, durDirection);
+          else
+            abar:SetMinMaxValues(0, 1);
+            abar:SetValue(1);
+          end
+
+          local angle = 0;
+          if self.orientation == "HORIZONTAL" then
+            angle = 0;
+          elseif self.orientation == "HORIZONTAL_INVERSE" then
+            angle = 180;
+          elseif self.orientation == "VERTICAL" then
+            angle = 90;
+          elseif self.orientation == "VERTICAL_INVERSE" then
+            angle = 270;
+          end
+          SetCoordsByAngle(abar.texture, angle)
+
+          local color = self.additionalBarsColors and self.additionalBarsColors[index];
+          if (color) then
+            abar.texture:SetVertexColor(unpack(color));
+          else
+            abar.texture:SetVertexColor(1, 1, 1, 1);
+          end
+
+          local texture = self.additionalBarsTextures and self.additionalBarsTextures[index];
+          if texture then
+            local texturePath = SharedMedia:Fetch("statusbar_atlas", texture, true) or SharedMedia:Fetch("statusbar", texture) or ""
+            Private.SetTextureOrAtlas(abar.texture, texturePath, extraTextureWrapMode, extraTextureWrapMode)
+          else
+            Private.SetTextureOrAtlas(abar.texture, self:GetStatusBarTexture(), extraTextureWrapMode, extraTextureWrapMode)
+          end
+
+          -- never takes effect as out texture is limited to the bar are, could increase texture size but it would break coords
+          -- if self.additionalBarsClip then
+          --   abar:SetClipsChildren(true);
+          -- else
+          --   abar:SetClipsChildren(false);
+          -- end
+        end
+
+        if (#self.additionalBars < #self.secretExtraTextures) then
+          for i = #self.additionalBars + 1, #self.secretExtraTextures do
+            self.secretExtraTextures[i]:Hide();
+          end
+        end
+        return
+      end
+
+
+      for i = 1, #self.secretExtraTextures do
+        self.secretExtraTextures[i]:Hide();
+      end
       for index, additionalBar in ipairs(self.additionalBars) do
         if (not self.extraTextures[index]) then
           local extraTexture = self:CreateTexture(nil, "ARTWORK");
@@ -527,6 +802,9 @@ local barPrototype = {
     else
       for i = 1, #self.extraTextures do
         self.extraTextures[i]:Hide();
+      end
+      for i = 1, #self.secretExtraTextures do
+        self.secretExtraTextures[i]:Hide();
       end
     end
   end,
@@ -976,6 +1254,7 @@ local funcs = {
         self.secretBar:SetValue(self.value)
       end
     end
+    self.bar:UpdateAdditionalBars();
   end,
   UseNormalMask = function(self)
     if self.bar.activeMask == "normal" then
@@ -1383,6 +1662,7 @@ local function create(parent)
     bar[key] = value;
   end
   bar.extraTextures = {};
+  bar.secretExtraTextures = {};
   bar:SetRotatesTexture(true);
   bar:HookScript("OnSizeChanged", bar.OnSizeChanged);
   region.bar = bar;

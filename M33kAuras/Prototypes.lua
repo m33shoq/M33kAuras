@@ -4295,9 +4295,9 @@ Private.event_prototypes = {
             state.modRate = modRate;
             state.changed = true;
           end
+          state.durationObject = durationObject;
           if isSecret then
             state.changed = true;
-            state.durationObject = durationObject;
             state.progressType = 'durationObject';
           else
             state.progressType = 'timed';
@@ -4416,6 +4416,10 @@ Private.event_prototypes = {
                 text = text .. L["Tracking Charge %i"]:format(trigger.trackcharge)
               end
             end
+            if trigger.use_showCooldownOverlay then
+              if text ~= "" then text = text .. "; " end
+              text = text .. L["Show Cooldown Overlay"]
+            end
             if text == "" then
               return L["|cFFffcc00Extra Options:|r None"]
             end
@@ -4481,6 +4485,14 @@ Private.event_prototypes = {
         collapse = "extra Cooldown Progress (Spell)"
       },
       {
+        name = "showCooldownOverlay",
+        display = L["Show Cooldown Overlay"],
+        type = "toggle",
+        test = "true",
+        reloadOptions = true,
+        collapse = "extra Cooldown Progress (Spell)"
+      },
+      {
         name = "remaining",
         display = L["Remaining Time"],
         type = "number",
@@ -4492,7 +4504,8 @@ Private.event_prototypes = {
         type = "number",
         store = true,
         conditionType = "number",
-        progressTotal = "maxCharges"
+        progressTotal = "maxCharges",
+        useAdditionalProgress = true,
       },
       {
         name = "spellCount",
@@ -4653,6 +4666,19 @@ Private.event_prototypes = {
         test = "true",
         conditionType = "bool",
       },
+    },
+    overlayFuncs = {
+      {
+        name = L["Cooldown"],
+        func = function(trigger, state)
+          if state.durationObject then
+            return "forward", 1, 0, state.durationObject, false
+          end
+        end,
+        enable = function(trigger, state)
+          return trigger.use_showCooldownOverlay
+        end
+      }
     },
     hasSpellID = true,
     automaticrequired = true,

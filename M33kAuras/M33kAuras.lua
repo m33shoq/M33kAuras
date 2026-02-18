@@ -4082,7 +4082,7 @@ Private.GetProgressSourceFor = function(data, trigger, property)
     triggerSystem.GetProgressSources(data, trigger, values)
     for _, v in ipairs(values) do
       if v.property == property then
-        return {trigger, v.type, v.property, v.total, v.modRate, v.inverse, v.paused, v.remaining}
+        return {trigger, v.type, v.property, v.total, v.modRate, v.inverse, v.paused, v.remaining, v.useAdditionalProgress}
       end
     end
   end

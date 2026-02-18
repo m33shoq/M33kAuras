@@ -445,11 +445,33 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
     local inverse = inverseProperty and state[inverseProperty]
     self.durationObject = state.durationObject
     self.inverse = inverse
-    -- reset these values to allow using ticks
-    self.minProgress, self.maxProgress = 0, 1
+    -- dont use secret values to allow using ticks
+    local adjustMin, max
+    if minMaxConfig.adjustedMin then
+      adjustMin = minMaxConfig.adjustedMin
+    elseif minMaxConfig.adjustedMinRelPercent then
+      adjustMin = minMaxConfig.adjustedMinRelPercent * 1
+    else
+      adjustMin = 0
+    end
+    if minMaxConfig.adjustedMax then
+      max = minMaxConfig.adjustedMax
+    elseif minMaxConfig.adjustedMaxRelPercent then
+      max = minMaxConfig.adjustedMaxRelPercent * 1
+    else
+      max = 1
+    end
+    self.minProgress, self.maxProgress = adjustMin, max
     if self.UpdateDuration then
       self:UpdateDuration()
     end
+    -- if self.SetAdditionalProgress then
+    --   if useAdditionalProgress then
+    --     self:SetAdditionalProgress(state.additionalProgress, 0, self.durationObject:GetTotalDuration(), false)
+    --   else
+    --     self:SetAdditionalProgress(nil)
+    --   end
+    -- end
   elseif progressType == "number" then
     local value = state[property]
     if type(value) ~= "number" then value = 0 end
