@@ -158,16 +158,16 @@ local function UnitIsVisibleFixed(unit)
   return unitVisible[unit]
 end
 
-local function UnitInRangeFixed(unit)
+-- local function UnitInRangeFixed(unit)
 
-  local inRange, checked = UnitInRange(unit)
-  if issecretvalue(inRange) then
-    return false
-  end
-  return inRange or not checked
-end
+--   local inRange, checked = UnitInRange(unit)
+--   if issecretvalue(inRange) then
+--     return false
+--   end
+--   return inRange or not checked
+-- end
 
-Private.ExecEnv.UnitInRangeFixed = UnitInRangeFixed
+-- Private.ExecEnv.UnitInRangeFixed = UnitInRangeFixed
 
 local function UnitInSubgroupOrPlayer(unit, includePets)
   if includePets == nil then

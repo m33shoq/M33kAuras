@@ -2658,17 +2658,17 @@ Private.event_prototypes = {
         end,
         init = "UnitIsConnected(unit)"
       },
-      {
-        name = "inRange",
-        display = L["In Range"],
-        desc = L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."],
-        type = "toggle",
-        width = M33kAuras.doubleWidth,
-        enable = function(trigger)
-          return M33kAuras.IsRetail() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
-        end,
-        init = "Private.ExecEnv.UnitInRangeFixed(unit)"
-      },
+      -- {
+      --   name = "inRange",
+      --   display = L["In Range"],
+      --   desc = L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."],
+      --   type = "toggle",
+      --   width = M33kAuras.doubleWidth,
+      --   enable = function(trigger)
+      --     return M33kAuras.IsRetail() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
+      --   end,
+      --   init = "Private.ExecEnv.UnitInRangeFixed(unit)"
+      -- },
       {
         name = "hostility",
         display = L["Hostility"],
@@ -3768,17 +3768,17 @@ Private.event_prototypes = {
         end,
         init = "UnitIsConnected(unit)"
       },
-      {
-        name = "inRange",
-        display = L["In Range"],
-        desc = L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."],
-        type = "toggle",
-        width = M33kAuras.doubleWidth,
-        enable = function(trigger)
-          return M33kAuras.IsRetail() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
-        end,
-        init = "Private.ExecEnv.UnitInRangeFixed(unit)"
-      },
+      -- {
+      --   name = "inRange",
+      --   display = L["In Range"],
+      --   desc = L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."],
+      --   type = "toggle",
+      --   width = M33kAuras.doubleWidth,
+      --   enable = function(trigger)
+      --     return M33kAuras.IsRetail() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
+      --   end,
+      --   init = "Private.ExecEnv.UnitInRangeFixed(unit)"
+      -- },
       {
         name = "nameplateType",
         display = L["Hostility"],
@@ -4056,17 +4056,17 @@ Private.event_prototypes = {
         end,
         init = "UnitIsConnected(unit)"
       },
-      {
-        name = "inRange",
-        display = L["In Range"],
-        desc = L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."],
-        type = "toggle",
-        width = M33kAuras.doubleWidth,
-        enable = function(trigger)
-          return M33kAuras.IsRetail() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
-        end,
-        init = "Private.ExecEnv.UnitInRangeFixed(unit)"
-      },
+      -- {
+      --   name = "inRange",
+      --   display = L["In Range"],
+      --   desc = L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."],
+      --   type = "toggle",
+      --   width = M33kAuras.doubleWidth,
+      --   enable = function(trigger)
+      --     return M33kAuras.IsRetail() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
+      --   end,
+      --   init = "Private.ExecEnv.UnitInRangeFixed(unit)"
+      -- },
       {
         name = "nameplateType",
         display = L["Hostility"],
