@@ -547,7 +547,7 @@ local function callFunctionForActivateEvent(func, trigger, state, property, erro
   end
   local ok, value = xpcall(func, errorHandler, trigger)
   if ok then
-    if state[property] ~= value then
+    if hasanysecretvalues(state[property], value) or state[property] ~= value then
       state[property] = value
       state.changed = true
     end
