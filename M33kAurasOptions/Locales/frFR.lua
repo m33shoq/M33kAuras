@@ -596,7 +596,6 @@ Si cette case est cochée, ce séparateur inclura du texte. Sinon, ce sera juste
 	L["If unchecked, then this space will fill the entire line it is on in User Mode."] = "Si cette case n'est pas cochée, cet espace remplira toute la ligne sur laquelle il se trouve en mode utilisateur."
 	--[[Translation missing --]]
 	L["Ignore out of casting range"] = "Ignore out of casting range"
-	L["Ignore out of checking range"] = "Ignorer hors de la plage de vérification"
 	--[[Translation missing --]]
 	L["Ignore Wago updates"] = "Ignore Wago updates"
 	L["Ignored"] = "Ignoré"
@@ -1192,7 +1191,6 @@ Upgrade your version of M33kAuras or wait for next release before installing thi
 	--[[Translation missing --]]
 	L["Uses Texture Coordinates to rotate the texture."] = "Uses Texture Coordinates to rotate the texture."
 	--[[Translation missing --]]
-	L["Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."] = "Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."
 	--[[Translation missing --]]
 	L["Value"] = "Value"
 	L["Value %i"] = "Valeur %i"

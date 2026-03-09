@@ -2406,6 +2406,10 @@ Private.event_prototypes = {
       if trigger.use_inRange then
         AddUnitEventForEvents(result, unit, "UNIT_IN_RANGE_UPDATE")
       end
+      if trigger.use_ignoreInvisible then
+        AddUnitEventForEvents(result, unit, "PARTY_MEMBER_DISABLE")
+        AddUnitEventForEvents(result, unit, "PARTY_MEMBER_ENABLE")
+      end
       return result;
     end,
     internal_events = function(trigger)
@@ -2669,6 +2673,17 @@ Private.event_prototypes = {
       --   end,
       --   init = "Private.ExecEnv.UnitInRangeFixed(unit)"
       -- },
+      {
+        name = "ignoreInvisible",
+        display = L["Ignore out of checking range"],
+        desc = L["Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."],
+        type = "toggle",
+        width = M33kAuras.doubleWidth,
+        enable = function(trigger)
+          return trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
+        end,
+        init = "UnitIsVisible(unit)",
+      },
       {
         name = "hostility",
         display = L["Hostility"],

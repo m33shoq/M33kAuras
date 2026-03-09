@@ -684,7 +684,6 @@ Falls die Zahl als Dezimalzahl (z.B. 0.5), Bruch (z.B. 1/2) oder Prozentsatz (z.
 	--[[Translation missing --]]
 	L["Ignore out of casting range"] = "Ignore out of casting range"
 	--[[Translation missing --]]
-	L["Ignore out of checking range"] = "Ignore out of checking range"
 	--[[Translation missing --]]
 	L["Ignore Wago updates"] = "Ignore Wago updates"
 	L["Ignored"] = "Ignoriert"
@@ -1357,7 +1356,6 @@ Upgrade your version of M33kAuras or wait for next release before installing thi
 	--[[Translation missing --]]
 	L["Uses Texture Coordinates to rotate the texture."] = "Uses Texture Coordinates to rotate the texture."
 	--[[Translation missing --]]
-	L["Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."] = "Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."
 	--[[Translation missing --]]
 	L["Value"] = "Value"
 	--[[Translation missing --]]
