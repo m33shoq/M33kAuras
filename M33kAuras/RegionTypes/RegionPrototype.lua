@@ -1231,7 +1231,14 @@ function Private.regionPrototype.AddExpandFunction(data, region, cloneId, parent
 end
 
 function Private.SetTextureOrAtlas(texture, path, wrapModeH, wrapModeV)
-  if issecretvalue(path) then return end
+  if issecretvalue(path) then
+    if type(path) == "number" then
+      return texture:SetTexture(path, wrapModeH, wrapModeV);
+    else
+      texture:SetTexture("");
+      return false
+    end
+  end
   texture.IsAtlas = type(path) == "string" and GetAtlasInfo(path) ~= nil
   if texture.IsAtlas then
     return texture:SetAtlas(path);
