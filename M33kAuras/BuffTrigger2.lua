@@ -3896,14 +3896,6 @@ local function TrackUid(unit)
   else
     ReleaseUID(unit)
   end
-  unit = unit.."target"
-  GUID = UnitGUID(unit)
-  if GUID then
-    SetUID(GUID, unit)
-    BuffTrigger.HandlePendingTracks(unit, GUID)
-  else
-    ReleaseUID(unit)
-  end
 end
 
 local function RemoveMatchDataMulti(base, destGUID, key, sourceGUID)
