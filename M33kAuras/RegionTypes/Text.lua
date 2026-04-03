@@ -102,6 +102,11 @@ Private.regionPrototype.AddProperties(properties, default);
 --- @field SetTextHeight fun(self: TextRegion, size: number)
 --- @field ChangeText fun(self: TextRegion, msg: string)
 
+local function SetCleanText(self, ...)
+  self:ClearText();
+  self:_SetText(...)
+end
+
 local function create(parent)
   local region = CreateFrame("Frame", nil, parent);
   region.regionType = "text"
@@ -112,6 +117,9 @@ local function create(parent)
   text:SetWordWrap(true);
   text:SetNonSpaceWrap(true);
 
+  text._SetText = text.SetText;
+  text.SetText = SetCleanText;
+
   Private.regionPrototype.create(region);
 
   return region;
@@ -121,6 +129,7 @@ end
 local function modify(parent, region, data)
   Private.regionPrototype.modify(parent, region, data);
   local text = region.text;
+  text:ClearText();
 
   local fontPath = SharedMedia:Fetch("font", data.font);
   text:SetFont(fontPath, data.fontSize, data.outline);
