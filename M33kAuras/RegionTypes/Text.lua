@@ -132,7 +132,7 @@ local function modify(parent, region, data)
   text:ClearText();
 
   local fontPath = SharedMedia:Fetch("font", data.font);
-  text:SetFont(fontPath, data.fontSize, data.outline);
+  text:SetFont(fontPath, data.fontSize, data.outline == "None" and "" or data.outline);
   if not text:GetFont() and fontPath then -- workaround font not loading correctly
     local objectName = "M33kAuras-Font-" .. data.font
     local fontObject = _G[objectName] or CreateFont(objectName)
@@ -140,7 +140,7 @@ local function modify(parent, region, data)
     text:SetFontObject(fontObject)
   end
   if not text:GetFont() then -- Font invalid, set the font but keep the setting
-    text:SetFont(STANDARD_TEXT_FONT, data.fontSize, data.outline);
+    text:SetFont(STANDARD_TEXT_FONT, data.fontSize, data.outline == "None" and "" or data.outline);
   end
 
   text:SetJustifyH(data.justify);
@@ -411,7 +411,7 @@ local function modify(parent, region, data)
 
   function region:SetTextHeight(size)
     local fontPath = SharedMedia:Fetch("font", data.font);
-    region.text:SetFont(fontPath, size, data.outline);
+    region.text:SetFont(fontPath, size, data.outline == "None" and "" or data.outline);
     region.text:SetTextHeight(size)
   end
 
