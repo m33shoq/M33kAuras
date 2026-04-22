@@ -2714,7 +2714,7 @@ do
       local power = UnitPower("player", EssenceEnum)
       local total = UnitPowerMax("player", EssenceEnum)
       local peace = GetPowerRegenForPowerType(EssenceEnum)
-      if peace == nil or peace == 0 then
+      if peace == nil or peace == 0 or issecretvalue(peace) then
         peace = 0.2
       end
       local duration = 1 / peace
