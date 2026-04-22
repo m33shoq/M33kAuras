@@ -187,3 +187,23 @@ Private.ExecEnv.ExpandFactionHeader = C_Reputation.ExpandFactionHeader or Expand
 Private.ExecEnv.CollapseFactionHeader = C_Reputation.CollapseFactionHeader or CollapseFactionHeader
 Private.ExecEnv.AreLegacyReputationsShown = C_Reputation.AreLegacyReputationsShown or function() return true end
 Private.ExecEnv.GetReputationSortType = C_Reputation.GetReputationSortType or function() return 0 end;
+
+
+function Private.ExecEnv.UnitIsUnit(unit1, unit2)
+  if hasanysecretvalues(unit1, unit2) then
+    return false
+  end
+  local res = UnitIsUnit(unit1, unit2)
+  if issecretvalue(res) then
+    return false
+  else
+    return res
+  end
+end
+
+function Private.ExecEnv.UnitName(unit)
+  if hasanysecretvalues(unit) or not unit then
+    return nil
+  end
+  return UnitName(unit)
+end

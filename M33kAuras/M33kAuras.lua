@@ -84,7 +84,7 @@ if CustomNames then
   M33kAuras.UnitFullName = CustomNames.UnitFullName
 else
   M33kAuras.GetName = function(name) return name end
-  M33kAuras.UnitName = UnitName
+  M33kAuras.UnitName = Private.ExecEnv.UnitName
   M33kAuras.GetUnitName = GetUnitName
   M33kAuras.UnitFullName = UnitFullName
 end
@@ -3727,18 +3727,6 @@ local function actionGlowStart(actions, frame, id)
       duration = actions.glow_duration or 1,
       key = id
   })
-  end
-end
-
-function Private.ExecEnv.UnitIsUnit(unit1, unit2)
-  if hasanysecretvalues(unit1, unit2) then
-    return false
-  end
-  local res = UnitIsUnit(unit1, unit2)
-  if issecretvalue(res) then
-    return false
-  else
-    return res
   end
 end
 

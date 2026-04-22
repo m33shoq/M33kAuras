@@ -473,10 +473,10 @@ local function UpdateMatchData(time, matchDataChanged, unit, index, auraInstance
       expirationTime = expirationTime,
       modRate = modRate,
       unitCaster = unitCaster,
-      casterName = unitCaster and UnitName(unitCaster) or "",
+      casterName = Private.ExecEnv.UnitName(unitCaster) or "",
       spellId = spellId,
       unit = unit,
-      unitName = UnitName(unit) or "",
+      unitName = Private.ExecEnv.UnitName(unit) or "",
       isStealable = isStealable,
       isBossDebuff = isBossDebuff,
       isCastByPlayer = isCastByPlayer,
@@ -541,7 +541,7 @@ local function UpdateMatchData(time, matchDataChanged, unit, index, auraInstance
     changed = true
   end
 
-  local casterName = unitCaster and UnitName(unitCaster) or ""
+  local casterName = Private.ExecEnv.UnitName(unitCaster) or ""
   if hasanysecretvalues(data.casterName, casterName) or data.casterName ~= casterName then
     data.casterName = casterName
     changed = true
@@ -567,7 +567,7 @@ local function UpdateMatchData(time, matchDataChanged, unit, index, auraInstance
     changed = true
   end
 
-  local unitName = UnitName(unit) or ""
+  local unitName = Private.ExecEnv.UnitName(unit) or ""
   if hasanysecretvalues(data.unitName, unitName) or data.unitName ~= unitName then
     data.unitName = unitName
     changed = true
@@ -1006,7 +1006,7 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       role = role,
       raidMark = raidMark,
       roleIcon = role and roleIcons[role],
-      unitName = unit and UnitName(unit) or "",
+      unitName = Private.ExecEnv.UnitName(unit) or "",
       destName = "",
       name = fallbackName,
       icon = fallbackIcon,
@@ -1090,7 +1090,7 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       changed = true
     end
 
-    local unitName = unit and UnitName(unit) or ""
+    local unitName = Private.ExecEnv.UnitName(unit) or ""
     if hasanysecretvalues(state.unitName, unitName) or state.unitName ~= unitName then
       state.unitName = unitName
       changed = true
@@ -1486,10 +1486,10 @@ local function FormatAffectedUnaffected(triggerInfo, matchedUnits)
   for unit in GetAllUnits(triggerInfo.unit, nil, triggerInfo.includePets) do
     if activeGroupScanFuncs[unit] and activeGroupScanFuncs[unit][triggerInfo] then
       if matchedUnits[unit] then
-        affected = affected .. (UnitName(unit) or unit) .. ", "
+        affected = affected .. (Private.ExecEnv.UnitName(unit) or unit) .. ", "
         tinsert(affectedUnits, unit)
       else
-        unaffected = unaffected .. (UnitName(unit) or unit) .. ", "
+        unaffected = unaffected .. (Private.ExecEnv.UnitName(unit) or unit) .. ", "
         tinsert(unaffectedUnits, unit)
       end
     end
@@ -4095,13 +4095,13 @@ local function AugmentMatchDataMultiWith(matchData, unit, name, icon, stacks, de
     changed = true
   end
 
-  local casterName = UnitName(unitCaster) or ""
+  local casterName = Private.ExecEnv.UnitName(unitCaster) or ""
   if matchData.casterName ~= casterName then
     matchData.casterName = casterName
     changed = true
   end
 
-  local unitName = UnitName(unit) or ""
+  local unitName = Private.ExecEnv.UnitName(unit) or ""
   if matchData.unitName ~= unitName then
     matchData.unitName = unitName
     changed = true

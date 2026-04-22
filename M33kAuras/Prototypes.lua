@@ -8184,7 +8184,7 @@ Private.event_prototypes = {
       trigger.unit = trigger.unit or "target";
       local ret = [[
         unit = string.lower(unit)
-        local name = UnitName(unit, false)
+        local name = Private.ExecEnv.UnitName(unit)
         local ok = true
         local aggro, status, threatpct, rawthreatpct, threatvalue, threattotal
         if unit and unit ~= "none" then
