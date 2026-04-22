@@ -1676,9 +1676,6 @@ function GenericTrigger.Add(data, region)
 
             prototype = event_prototypes[trigger.event]
             triggerFuncStr = ConstructFunction(prototype, trigger);
-            if id == "Moovespeed Tracker" then
-              print("TriggerFuncStr", triggerFuncStr)
-            end
             statesParameter = prototype.statesParameter;
             triggerFunc = Private.LoadFunction(triggerFuncStr, id);
 
