@@ -66,7 +66,7 @@ local currentThreadData = nil ---@type AsyncThreadData?
 AddonDB.AsyncEnvironment = setmetatable({}, {
 	__index = function(_, k)
 		if not currentThreadData then
-			error(GlobalAddonName .. ": AsyncEnvironment is not set")
+			return nil
 		end
 		if k == "EXECUTION_TIME" then
 			return currentThreadData.executionTime
