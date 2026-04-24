@@ -913,7 +913,10 @@ Private.ExecEnv.BossMods.BigWigs = {
       Private.ScanEvents("BigWigs_Message", ...)
       if self.isGeneric then
         local _, spellId, text, _, icon = ...
-        local count = text and not issecretvalue(text) and (text:match("%((%d+)%)") or text:match("（(%d+)）")) or "0"
+        if hasanysecretvalues(spellId, text) then
+          return
+        end
+        local count = text and (text:match("%((%d+)%)") or text:match("（(%d+)）")) or "0"
         Private.ScanEvents("BossMod_Announce", spellId, text, icon, count)
       end
     elseif event == "BigWigs_Timer"
@@ -948,6 +951,9 @@ Private.ExecEnv.BossMods.BigWigs = {
         isCooldown = false
         isBarEnabled = true
         timerType = "pull"
+      end
+      if hasanysecretvalues(spellId, text) then
+        return
       end
       local now = GetTime()
       local expirationTime = now + duration
