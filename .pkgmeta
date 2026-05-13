@@ -13,7 +13,6 @@ externals:
   M33kAuras/Libs/LibDeflate: https://github.com/SafeteeWoW/LibDeflate
   M33kAuras/Libs/LibSpellRange-1.0: https://github.com/ascott18/LibSpellRange-1.0
   M33kAuras/Libs/LibRangeCheck-3.0: https://github.com/WeakAuras/LibRangeCheck-3.0/
-  M33kAuras/Libs/LibCustomGlow-1.0: https://github.com/Stanzilla/LibCustomGlow
   M33kAuras/Libs/LibDBIcon-1.0: https://repos.curseforge.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
   M33kAuras/Libs/Archivist:
     url: https://github.com/emptyrivers/Archivist

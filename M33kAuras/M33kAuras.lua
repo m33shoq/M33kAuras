@@ -73,7 +73,7 @@ end
 
 local LDB = LibStub("LibDataBroker-1.1")
 local LDBIcon = LibStub("LibDBIcon-1.0")
-local LCG = LibStub("LibCustomGlow-1.0")
+local LCG = LibStub("LibCustomGlow-1.0-m33kauras")
 local LGF = LibStub("LibGetFrame-1.0")
 
 local CustomNames = C_AddOns.IsAddOnLoaded("CustomNames") and LibStub("CustomNames") -- optional addon

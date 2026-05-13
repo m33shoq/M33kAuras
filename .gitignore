@@ -4,6 +4,7 @@ M33kAuras_Options.lua
 M33kAuras_Templates.lua
 M33kAuras/Libs/*
 !M33kAuras/Libs/LibGetFrame-1.0
+!M33kAuras/Libs/LibCustomGlow-1.0
 M33kAurasOptions/Libs/*
 format.bat
 **/desktop.ini

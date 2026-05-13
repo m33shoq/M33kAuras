@@ -165,7 +165,7 @@ M33kAuras.PadString = function(input, padMode, padLength)
   return input
 end
 
-local LCG = LibStub("LibCustomGlow-1.0")
+local LCG = LibStub("LibCustomGlow-1.0-m33kauras")
 M33kAuras.ShowOverlayGlow = LCG.ButtonGlow_Start
 M33kAuras.HideOverlayGlow = LCG.ButtonGlow_Stop
 
