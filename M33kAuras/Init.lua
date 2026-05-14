@@ -553,7 +553,7 @@ do
     "LibDataBroker-1.1",
     "LibCompress",
     "SpellRange-1.0",
-    "LibCustomGlow-1.0",
+    "LibCustomGlow-1.0-m33kauras",
     "LibDBIcon-1.0",
     "LibGetFrame-1.0",
     "LibSerialize",
