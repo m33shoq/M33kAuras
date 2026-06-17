@@ -1,4 +1,4 @@
-## Interface: 110205, 120000
+## Interface: 120007
 ## Title: M33kAuras Archive
 ## Author: m33shoq
 ## Version: @project-version@
