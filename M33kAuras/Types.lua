@@ -4341,6 +4341,10 @@ Private.difficulty_info = {
     size = "twenty",
     difficulty = "normal",
   },
+  [233] = {
+    size = "flexible",
+    difficulty = "mythic",
+  }
 }
 
 Private.glow_types = {
