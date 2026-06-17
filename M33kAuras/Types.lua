@@ -3219,6 +3219,7 @@ if not M33kAuras.IsClassicEra() then
     [230] = unused, -- heroic party
     [231] = unused, -- normal raid dungeon
     [232] = unused, -- event party
+    [233] = L["Raid (Mythic Flex)"],
     [236] = L["Lorewalking"],
     [237] = M33kAuras.IsMists() and L["Dungeon (Celestial)"] or unused,
   }
