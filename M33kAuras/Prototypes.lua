@@ -4915,6 +4915,7 @@ Private.event_prototypes = {
         "ITEM_COOLDOWN_CHANGED:" .. itemName,
         "ITEM_COOLDOWN_STARTED:" .. itemName,
         "COOLDOWN_REMAINING_CHECK:" .. itemName,
+        "WA_DELAYED_PLAYER_ENTERING_WORLD"
       }
       if (trigger.use_showgcd) then
         tinsert(events, "GCD_START");
