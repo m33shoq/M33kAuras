@@ -55,7 +55,7 @@ end
 local function UpdateHandleColor(self)
   if self.progressBarHandle.mouseDown then
     self.progressBarHandleTexture:SetColorTexture(0.6, 0.6, 0, 1)
-  elseif MouseIsOver(self.progressBarHandle) then
+  elseif self.progressBarHandle:IsMouseOver() then
     self.progressBarHandleTexture:SetColorTexture(0.8, 0.8, 0, 1)
   else
     self.progressBarHandleTexture:SetColorTexture(0.4, 0.4, 0, 1)
@@ -63,7 +63,7 @@ local function UpdateHandleColor(self)
 end
 
 local function UpdateHandleVisibility(self)
-  if MouseIsOver(self.frame) then
+  if self.frame:IsMouseOver() then
     self.progressBarHandle:Show()
     UpdateHandleColor(self)
   else

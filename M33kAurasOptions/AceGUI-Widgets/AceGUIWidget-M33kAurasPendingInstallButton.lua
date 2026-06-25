@@ -222,7 +222,7 @@ local function Constructor()
   animRotate:SetDuration(1)
   animRotate:SetSmoothing("OUT")
   animGroup:SetScript("OnFinished", function()
-    if (MouseIsOver(update)) then
+    if update:IsMouseOver() then
       animGroup:Play()
     end
   end)
