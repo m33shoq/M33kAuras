@@ -305,6 +305,47 @@ local function CheckScanFuncs(scanFuncs, unit, filter, key)
   end
 end
 
+-- in 12.1 there is no way to iterate over all auras on the unit while auras are secret
+-- but we can call C_UnitAuras.GetUnitAuraBySpellID for each spell id we're interested in
+-- downside of that workaround is that we can't track multiple instances of the same spell id
+-- and in case there are multiple auras with the same spell id we can't control which aura we are tracking
+local SafeForEachAura
+local aurasAreLocked = select(4, GetBuildInfo()) >= 120100
+if aurasAreLocked then
+  SafeForEachAura = function(unit, filter, maxCount, func, usePackedAura)
+    if not C_Secrets.ShouldAurasBeSecret() then
+      return AuraUtil.ForEachAura(unit, filter, maxCount, func, usePackedAura)
+    else
+
+      local sfs = GetSubTable(scanFuncSpellId, unit, filter)
+      if sfs then
+        for spellID in next, sfs do
+          local auraData = C_UnitAuras.GetUnitAuraBySpellID(unit, spellID)
+          if auraData then
+            if (filter == "HELPFUL" and auraData.isHelpful) or (filter == "HARMFUL" and auraData.isHarmful) then
+              func(auraData)
+            end
+          end
+        end
+      end
+
+      local sfsg = GetSubTable(scanFuncSpellIdGroup, unit, filter)
+      if sfsg then
+        for spellID in next, sfsg do
+          local auraData = C_UnitAuras.GetUnitAuraBySpellID(unit, spellID)
+          if auraData then
+            if (filter == "HELPFUL" and auraData.isHelpful) or (filter == "HARMFUL" and auraData.isHarmful) then
+              func(auraData)
+            end
+          end
+        end
+      end
+    end
+  end
+else
+  SafeForEachAura = AuraUtil.ForEachAura
+end
+
 local TooltipHelper
 if newAPI then
   ---@class TooltipHelper
@@ -1801,7 +1842,7 @@ do
         _time = GetTime()
         _unit = unit
         _filter = filter
-        AuraUtil.ForEachAura(unit, filter, nil, HandleAura, true)
+        SafeForEachAura(unit, filter, nil, HandleAura, true)
       else
         local time = GetTime()
         local index = 1
@@ -1989,7 +2030,7 @@ do
           -- full
           -- clean first
           CleanUpOutdatedMatchData(nil, unit, filter)
-          AuraUtil.ForEachAura(unit, filter, nil, HandleAura, true)
+          SafeForEachAura(unit, filter, nil, HandleAura, true)
         end
       else
         local index = 1
@@ -2325,7 +2366,7 @@ local function EventHandler(frame, event, arg1, arg2, ...)
     if newAPI then
       -- arg1: unit
       -- arg2: unitAuraUpdateInfo
-      if arg2 == nil or arg2.isFullUpdate then
+      if arg2 == nil or issecretvalue(arg2.isFullUpdate) or arg2.isFullUpdate or issecretvalue(arg2.addedAuras) or issecretvalue(arg2.removedAuraInstanceIDs) or issecretvalue(arg2.updatedAuraInstanceIDs) then
         ScanUnit(time, arg1)
       else
         ScanUnit(time, arg1, arg2)
@@ -4134,7 +4175,7 @@ do
   AugmentMatchDataMulti = function(matchData, unit, filter, sourceGUID, nameKey, spellKey)
     if newAPI then
       _matchData, _unit, _sourceGUID, _nameKey, _spellKey = matchData, unit, sourceGUID, nameKey, spellKey
-      AuraUtil.ForEachAura(unit, filter, nil, HandleAura, true)
+      SafeForEachAura(unit, filter, nil, HandleAura, true)
     else
       local index = 1
       while true do
@@ -4260,7 +4301,7 @@ do
     if newAPI then
       _base = base
       _unit = unit
-      AuraUtil.ForEachAura(unit, filter, nil, HandleAura, true)
+      SafeForEachAura(unit, filter, nil, HandleAura, true)
     else
       local index = 1
       while true do
