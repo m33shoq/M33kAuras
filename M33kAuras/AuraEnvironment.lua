@@ -114,17 +114,12 @@ local WA_ClassColorName = function(unit, maxlen)
   if unit and UnitExists(unit) then
     local name = M33kAuras.UnitName(unit)
     if issecretvalue(name) then
-      local GUID = UnitGUID(unit)
-      if not GUID then
+      local _, class = UnitClass(unit)
+      if not class then
         return name
       end
 
-      local _, englishClass = GetPlayerInfoByGUID(GUID)
-      if not englishClass then
-        return name
-      end
-
-      local classColor = C_ClassColor.GetClassColor(englishClass)
+      local classColor = C_ClassColor.GetClassColor(class)
       return classColor:WrapTextInColorCode(name)
     end
     if maxlen and maxlen > 0 then
