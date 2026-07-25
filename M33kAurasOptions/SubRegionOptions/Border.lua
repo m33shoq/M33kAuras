@@ -64,6 +64,12 @@ local function createOptions(parentData, data, index, subIndex)
       order = 7,
       values = areaAnchors,
       hidden = function() return parentData.regionType ~= "aurabar" end
+    },
+    border_ppscale = {
+      type = "toggle",
+      width = M33kAuras.doubleWidth,
+      name = L["Force pixel perfect scale"],
+      order = 8,
     }
   }
 

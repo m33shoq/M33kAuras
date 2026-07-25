@@ -56,6 +56,49 @@ end
 local function modify(parent, region, parentData, data, first)
   region:SetParent(parent)
 
+
+  if data.border_ppscale then -- hides/shows are required here to force a refresh of the region
+    local pixelPerfectScale = PixelUtil.GetPixelToUIUnitFactor()
+    region:ForEachPiece(function(pieceName, piece)
+      piece:SetSnapToPixelGrid(false)
+      if piece:GetTexelSnappingBias() ~= 0 then
+        piece.originalSnappingBias = piece:GetTexelSnappingBias()
+        piece:SetTexelSnappingBias(0)
+      end
+
+      piece:SetIgnoreParentScale(true)
+      piece:SetScale(pixelPerfectScale)
+      piece:Hide()
+      piece:Show()
+    end)
+
+    region:SetIgnoreParentScale(true)
+    region:SetScale(pixelPerfectScale)
+    region:Hide()
+    region:Show()
+  else
+
+    region:ForEachPiece(function(pieceName, piece)
+      piece:SetSnapToPixelGrid(true)
+      if piece.originalSnappingBias then
+        piece:SetTexelSnappingBias(piece.originalSnappingBias)
+        piece.originalSnappingBias = nil
+      end
+
+      piece:SetIgnoreParentScale(false)
+      piece:SetScale(1)
+      piece:Hide()
+      piece:Show()
+    end)
+
+    region:SetIgnoreParentScale(false)
+    region:SetScale(1)
+    region:Hide()
+    region:Show()
+  end
+
+
+
   local edgeFile = SharedMedia:Fetch("border", data.border_edge)
   if edgeFile and edgeFile ~= "" then
     region:SetBackdrop({

@@ -300,3 +300,12 @@ function BackdropTemplateM33kAurasMixin:SetBackdropBorderColor(r, g, b, a)
 		end
 	end
 end
+
+function BackdropTemplateM33kAurasMixin:ForEachPiece(callback)
+	for pieceName in pairs(textureUVs) do
+		local region = self[pieceName];
+		if region then
+			callback(pieceName, region);
+		end
+	end
+end
