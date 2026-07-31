@@ -413,6 +413,35 @@ function Private.ActivateAuraEnvironment(id, cloneId, state, states, onlyConfig)
   end
 end
 
+EventRegistry:RegisterCallback("SetItemRef", function(_, link, text, button, chatFrame)
+  local linkType, addonName, waID, uid = strsplit(":", link)
+  if linkType == "addon" and addonName == "M33kAuras" then
+    if button == "RightButton" then
+      if (not Private.LoadOptions() or not M33kAuras.IsOptionsOpen()) then
+        M33kAuras.ToggleOptions(nil, Private)
+        C_Timer.After(1, function() M33kAuras.PickDisplay(waID) end)
+      else
+        M33kAuras.PickDisplay(waID)
+      end
+    else
+      print("Print from WA:", [["]]..waID..[["]], "|n|cff999999(right click the link above to open in config)|r")
+    end
+  end
+end)
+
+local function getHyperlinkForPrint()
+  local id, uid = current_aura_env.id, current_uid
+  if id then
+    return string.format("|Haddon:M33kAuras:%s:%s|h|cff666666[WA]|r|h", id, uid)
+  else
+    return "Unknown Aura"
+  end
+end
+
+local function printID(...)
+  print(getHyperlinkForPrint(), ...)
+end
+
 local function DebugPrint(...)
   Private.DebugLog.Print(current_uid, ...)
 end
@@ -587,6 +616,8 @@ local exec_env_custom = setmetatable(CopyTable(mixins),
       return current_aura_env and Private.AuraEnvironmentWrappedSystem.Get("C_Timer",
                                       current_aura_env.id, current_aura_env.cloneId)
                               or C_Timer
+    elseif k == "print" then
+     return current_aura_env and printID or print
     elseif blockedFunctions[k] then
       blocked(k)
       return function(_) end
