@@ -424,7 +424,7 @@ EventRegistry:RegisterCallback("SetItemRef", function(_, link, text, button, cha
         M33kAuras.PickDisplay(waID)
       end
     else
-      print("Print from WA:", [["]]..waID..[["]], "|n|cff999999(right click the link above to open in config)|r")
+      print("Print from WA:", [["]]..waID..[["]], "|n|cff999999(right click the link above to open in config, /wa trackprint to toggle the hyperlink display)|r")
     end
   end
 end)
@@ -617,7 +617,7 @@ local exec_env_custom = setmetatable(CopyTable(mixins),
                                       current_aura_env.id, current_aura_env.cloneId)
                               or C_Timer
     elseif k == "print" then
-     return current_aura_env and printID or print
+     return current_aura_env and not Private.db.disableTrackPrints and printID or print
     elseif blockedFunctions[k] then
       blocked(k)
       return function(_) end
