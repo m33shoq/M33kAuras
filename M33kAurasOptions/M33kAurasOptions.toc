@@ -1,4 +1,4 @@
-## Interface: 120007
+## Interface: 120100
 ## Title: M33kAuras Options
 ## Author: m33shoq
 ## Version: @project-version@
