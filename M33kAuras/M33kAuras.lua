@@ -1360,7 +1360,9 @@ function Private.Login(takeNewSnapshots)
       GREMINDER:FireCallback("WEAKAURAS_LOGIN_COMPLETE")
     end
   end)
-  thread:ForceRun(12000)
+  if not db.deferLogin then
+    thread:ForceRun(12000)
+  end
 end
 
 local M33kAurasFrame = CreateFrame("Frame", "M33kAurasFrame", UIParent);
