@@ -385,6 +385,12 @@ local function GetBuffTriggerOptions(data, triggernum)
       name = L["Spell Selection Filters"],
       order = 11.15,
     },
+    restrictions12_1Warning = {
+      type = "description",
+      width = M33kAuras.doubleWidth,
+      name = L["Since 12.1 when aura secrecy restrictions are active(combat or active m+), M33kAuras can only track \"Never Secret\" auras by exact spell ID. Name(s), Ignored Name(s), and Ignored Exact Spell ID(s) will no longer work."],
+      order = 11.16,
+    },
     use_debuffClass = {
       type = "toggle",
       width = M33kAuras.normalWidth,
