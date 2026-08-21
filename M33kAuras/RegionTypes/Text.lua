@@ -6,6 +6,7 @@ local Private = select(2, ...)
 
 local SharedMedia = LibStub("LibSharedMedia-3.0");
 local L = M33kAuras.L;
+local FontStringScaleAnimationMode = Enum and Enum.FontStringScaleAnimationMode
 
 local defaultFont = M33kAuras.defaultFont
 local defaultFontSize = M33kAuras.defaultFontSize
@@ -107,6 +108,8 @@ local function SetCleanText(self, ...)
   self:_SetText(...)
 end
 
+local fontObjectCounter = 0
+
 local function create(parent)
   local region = CreateFrame("Frame", nil, parent);
   region.regionType = "text"
@@ -116,6 +119,11 @@ local function create(parent)
   region.text = text;
   text:SetWordWrap(true);
   text:SetNonSpaceWrap(true);
+
+  local fontObject = CreateFont("M33kAuras-Text-Font" .. fontObjectCounter)
+  fontObjectCounter =  fontObjectCounter + 1
+  region.text:SetFontObject(fontObject)
+  region.fontObject = fontObject
 
   text._SetText = text.SetText;
   text.SetText = SetCleanText;
@@ -129,21 +137,25 @@ end
 local function modify(parent, region, data)
   Private.regionPrototype.modify(parent, region, data);
   local text = region.text;
+  local fontObject = region.fontObject
   text:ClearText();
 
   local fontPath = SharedMedia:Fetch("font", data.font);
-  text:SetFont(fontPath, data.fontSize, data.outline == "None" and "" or data.outline);
+  local outline = data.outline == "None" and "" or data.outline
+  local slugFont = data.outline == "SLUG" or data.outline == "OUTLINE|SLUG" or data.outline == "THICKOUTLINE|SLUG"
+  if text.SetScaleAnimationMode and FontStringScaleAnimationMode then
+    text:SetScaleAnimationMode(slugFont and FontStringScaleAnimationMode.Vertex or FontStringScaleAnimationMode.FontSize)
+  end
+  text:SetFont(fontPath, data.fontSize, outline);
   if not text:GetFont() and fontPath then -- workaround font not loading correctly
-    local objectName = "M33kAuras-Font-" .. data.font
-    local fontObject = _G[objectName] or CreateFont(objectName)
-    fontObject:SetFont(fontPath, data.fontSize, data.outline == "None" and "" or data.outline)
+    fontObject:SetFont(fontPath, data.fontSize, outline)
     text:SetFontObject(fontObject)
   end
   if not text:GetFont() then -- Font invalid, set the font but keep the setting
-    text:SetFont(STANDARD_TEXT_FONT, data.fontSize, data.outline == "None" and "" or data.outline);
+    text:SetFont(STANDARD_TEXT_FONT, data.fontSize, outline);
   end
 
-  text:SetJustifyH(data.justify);
+  fontObject:SetJustifyH(data.justify);
   text:SetText("")
 
   text:ClearAllPoints();
@@ -179,8 +191,12 @@ local function modify(parent, region, data)
   end
 
   text:SetTextHeight(data.fontSize);
-  text:SetShadowColor(unpack(data.shadowColor))
-  text:SetShadowOffset(data.shadowXOffset, data.shadowYOffset)
+  fontObject:SetShadowColor(unpack(data.shadowColor))
+  if data.outline == "OUTLINE|SLUG" or data.outline == "THICKOUTLINE|SLUG" then
+    fontObject:SetShadowOffset(0, 0)
+  else
+    fontObject:SetShadowOffset(data.shadowXOffset, data.shadowYOffset)
+  end
 
   text:ClearAllPoints();
   text:SetPoint(data.justify, region, data.justify);
@@ -411,7 +427,7 @@ local function modify(parent, region, data)
 
   function region:SetTextHeight(size)
     local fontPath = SharedMedia:Fetch("font", data.font);
-    region.text:SetFont(fontPath, size, data.outline == "None" and "" or data.outline);
+    region.text:SetFont(fontPath, size, outline);
     region.text:SetTextHeight(size)
   end
 
@@ -438,8 +454,9 @@ Private.RegisterRegionType("text", create, modify, default, properties, validate
 local function fallbackmodify(parent, region, data)
   Private.regionPrototype.modify(parent, region, data);
   local text = region.text;
+  local fontObject = region.fontObject
 
-  text:SetFont(STANDARD_TEXT_FONT, data.fontSize, data.outline and "OUTLINE" or nil);
+  fontObject:SetFont(STANDARD_TEXT_FONT, data.fontSize, data.outline and "OUTLINE" or "");
   if text:GetFont() then
     text:SetText(M33kAuras.L["Region type %s not supported"]:format(data.regionType));
   end

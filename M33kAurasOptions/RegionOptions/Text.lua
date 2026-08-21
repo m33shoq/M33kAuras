@@ -141,28 +141,33 @@ local function createOptions(id, data)
       hasAlpha = true,
       order = 47
     },
-
+    outline = {
+      type = "select",
+      width = M33kAuras.normalWidth,
+      name = L["Outline"],
+      order = 47.5,
+      values = OptionsPrivate.Private.font_flags,
+    },
     fontFlagsDescription = {
       order = 48,
       width = M33kAuras.doubleWidth,
       type = "execute",
       control = "M33kAurasExpandSmall",
       name = function()
-        local textFlags = OptionsPrivate.Private.font_flags[data.outline]
+        local hideShadow = data.outline == "OUTLINE|SLUG" or data.outline == "THICKOUTLINE|SLUG"
         local color = format("%02x%02x%02x%02x",
                              data.shadowColor[4] * 255, data.shadowColor[1] * 255,
                              data.shadowColor[2] * 255, data.shadowColor[3]*255)
 
-        local textJustify = ""
+        local text = ""
         if data.justify == "CENTER" then
           -- CENTER is default
         elseif data.justify == "LEFT" then
-          textJustify = " " .. L["and aligned left"]
+          text = L["Aligned left"]
         elseif data.justify == "RIGHT" then
-          textJustify = " " ..  L["and aligned right"]
+          text =  L["Aligned right"]
         end
 
-        local textWidth = ""
         if data.automaticWidth == "Fixed" then
           local wordWarp = ""
           if data.wordWrap == "WordWrap" then
@@ -170,12 +175,36 @@ local function createOptions(id, data)
           else
             wordWarp = L["eliding"]
           end
-          textWidth = " "..L["and with width |cFFFF0000%s|r and %s"]:format(data.fixedWidth, wordWarp)
+          if text == "" then
+            text = L["Width |cFFFF0000%s|r and %s"]:format(data.fixedWidth, wordWarp)
+          else
+            text = text .. " " .. L["and with width |cFFFF0000%s|r and %s"]:format(data.fixedWidth, wordWarp)
+          end
         end
 
-        local secondline = L["|cFFffcc00Font Flags:|r |cFFFF0000%s|r and shadow |c%sColor|r with offset |cFFFF0000%s/%s|r%s%s"]:format(textFlags, color, data.shadowXOffset, data.shadowYOffset, textJustify, textWidth)
+        if data.smoothScaling then
+          if text == "" then
+            text = L["Smooth scaling"]
+          else
+            text = text .. " " .. L["and smooth scaling"]
+          end
+        end
 
-        return secondline
+        if not hideShadow then
+          if text == "" then
+            text = text .. " " .. L["Shadow |c%sColor|r with offset |cFFFF0000%s/%s|r"]
+                                  :format(color, data.shadowXOffset, data.shadowYOffset)
+          else
+            text = text .. " " .. L["and shadow |c%sColor|r with offset |cFFFF0000%s/%s|r"]
+                                  :format(color, data.shadowXOffset, data.shadowYOffset)
+          end
+        end
+
+        if text == "" then
+          return L["|cFFffcc00Font Flags:|r none"]
+        else
+          return L["|cFFffcc00Font Flags:|r"] .. " " .. text
+        end
       end,
       func = function(info, button)
         local collapsed = OptionsPrivate.IsCollapsed("text", "text", "fontflags", true)
@@ -199,12 +228,12 @@ local function createOptions(id, data)
       hidden = hiddenFontExtra,
       width = indentWidth
     },
-    outline = {
-      type = "select",
+    smoothScaling = {
+      type = "toggle",
       width = M33kAuras.normalWidth - indentWidth,
-      name = L["Outline"],
+      name = M33kAuras.newFeatureString .. L["Smooth Font"],
+      desc = L["Smooths text height, preventing it from snapping to the nearest whole number when scaled."],
       order = 48.2,
-      values = OptionsPrivate.Private.font_flags,
       hidden = hiddenFontExtra
     },
     shadowColor = {
@@ -213,14 +242,27 @@ local function createOptions(id, data)
       width = M33kAuras.normalWidth,
       name = L["Shadow Color"],
       order = 48.3,
-      hidden = hiddenFontExtra
+      hidden = function()
+        return hiddenFontExtra() or data.outline == "OUTLINE|SLUG" or data.outline == "THICKOUTLINE|SLUG"
+      end
+    },
+    shadowColorSpace = {
+      type = "description",
+      name = "",
+      width = M33kAuras.normalWidth,
+      order = 48.3,
+      hidden = function()
+        return hiddenFontExtra() or data.outline ~= "OUTLINE|SLUG" or data.outline ~= "THICKOUTLINE|SLUG"
+      end
     },
 
     text_font_space3 = {
       type = "description",
       name = "",
       order = 48.4,
-      hidden = hiddenFontExtra,
+      hidden = function()
+        return hiddenFontExtra() or data.outline == "OUTLINE|SLUG" or data.outline == "THICKOUTLINE|SLUG"
+      end,
       width = indentWidth
     },
     shadowXOffset = {
@@ -232,7 +274,9 @@ local function createOptions(id, data)
       softMax = 15,
       bigStep = 1,
       order = 48.5,
-      hidden = hiddenFontExtra
+      hidden = function()
+        return hiddenFontExtra() or data.outline == "OUTLINE|SLUG" or data.outline == "THICKOUTLINE|SLUG"
+      end
     },
     shadowYOffset = {
       type = "range",
@@ -243,7 +287,9 @@ local function createOptions(id, data)
       softMax = 15,
       bigStep = 1,
       order = 48.6,
-      hidden = hiddenFontExtra
+      hidden = function()
+        return hiddenFontExtra() or data.outline == "OUTLINE|SLUG" or data.outline == "THICKOUTLINE|SLUG"
+      end
     },
 
     text_font_space4 = {
@@ -408,6 +454,7 @@ local function createOptions(id, data)
     position = OptionsPrivate.commonOptions.PositionOptions(id, data, nil, true);
   };
 end
+local thumbnailFontObjectCounter = 0
 
 local function createThumbnail()
   local borderframe = CreateFrame("Frame", nil, UIParent);
@@ -433,22 +480,28 @@ local function createThumbnail()
   borderframe.text = text;
   text:SetNonSpaceWrap(true);
 
+  local fontObject = CreateFont("M33kAuras-TextThumbnail-Font" .. thumbnailFontObjectCounter)
+  thumbnailFontObjectCounter = thumbnailFontObjectCounter + 1
+  text:SetFontObject(fontObject)
+  borderframe.fontObject = fontObject
+
   borderframe.values = {};
 
   return borderframe;
 end
 
 local function modifyThumbnail(parent, borderframe, data, fullModify, size)
-  local mask, content, text = borderframe.mask, borderframe.content, borderframe.text;
+  local mask, content, text, fontObject =
+    borderframe.mask, borderframe.content, borderframe.text, borderframe.fontObject;
 
   size = size or 28;
 
   local fontPath = SharedMedia:Fetch("font", data.font) or data.font;
-  text:SetFont(fontPath, data.fontSize, data.outline and "OUTLINE" or nil);
+  fontObject:SetFont(fontPath, data.fontSize, data.outline and "OUTLINE" or "");
   text:SetTextHeight(data.fontSize);
   text:SetText(data.displayText);
   text:SetTextColor(data.color[1], data.color[2], data.color[3], data.color[4]);
-  text:SetJustifyH(data.justify);
+  fontObject:SetJustifyH(data.justify);
 
   text:ClearAllPoints();
   text:SetPoint("CENTER", UIParent, "CENTER");
