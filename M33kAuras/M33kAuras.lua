@@ -312,6 +312,8 @@ Private.regions = {};
 -- keyed on id, contains bool indicating whether the aura is loaded
 Private.loaded = {};
 local loaded = Private.loaded;
+-- Snapshot of the load state when pausing, before options changes can update loaded.
+local loadedBeforePause = {};
 
 -- contains regions for clones
 Private.clones = {};
@@ -1503,6 +1505,13 @@ function M33kAuras.IsPaused()
 end
 
 function Private.Pause()
+  if not paused then
+    wipe(loadedBeforePause)
+    for id, isLoaded in pairs(loaded) do
+      loadedBeforePause[id] = isLoaded
+    end
+  end
+
   for id, states in pairs(triggerState) do
     local changed
     for triggernum in ipairs(states) do
@@ -2033,7 +2042,7 @@ local function UnloadAll()
     triggerSystem.UnloadAll();
   end
 
-  for id in pairs(loaded) do
+  for id in pairs(loadedBeforePause) do
     local func = Private.customActionsFunctions[id] and Private.customActionsFunctions[id]["unload"]
     if func then
       Private.ActivateAuraEnvironment(id)
@@ -2041,6 +2050,7 @@ local function UnloadAll()
       Private.ActivateAuraEnvironment(nil)
     end
   end
+  wipe(loadedBeforePause)
   wipe(loaded);
 end
 
@@ -2312,6 +2322,8 @@ function M33kAuras.Rename(data, newid)
 
   loaded[newid] = loaded[oldid];
   loaded[oldid] = nil;
+  loadedBeforePause[newid] = loadedBeforePause[oldid];
+  loadedBeforePause[oldid] = nil;
   loadFuncs[newid] = loadFuncs[oldid];
   loadFuncs[oldid] = nil;
 
@@ -6784,4 +6796,3 @@ do
     return data.regionType == "group" or data.regionType == "dynamicgroup"
   end
 end
-
