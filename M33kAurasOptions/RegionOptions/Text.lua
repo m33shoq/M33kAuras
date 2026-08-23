@@ -252,7 +252,8 @@ local function createOptions(id, data)
       width = M33kAuras.normalWidth,
       order = 48.3,
       hidden = function()
-        return hiddenFontExtra() or data.outline ~= "OUTLINE|SLUG" or data.outline ~= "THICKOUTLINE|SLUG"
+        return hiddenFontExtra()
+          or (data.outline ~= "OUTLINE|SLUG" and data.outline ~= "THICKOUTLINE|SLUG")
       end
     },
 
