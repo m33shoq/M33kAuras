@@ -309,11 +309,13 @@ local loadEvents = {}
 -- All regions keyed on id, has properties: region, regionType, also see clones
 Private.regions = {};
 
--- keyed on id, contains bool indicating whether the aura is loaded
+-- Current load evaluation keyed by id. Options may update this while runtime is paused.
 Private.loaded = {};
 local loaded = Private.loaded;
--- Snapshot of the load state when pausing, before options changes can update loaded.
-local loadedBeforePause = {};
+-- Displays whose runtime lifecycle is active and therefore still requires an unload.
+local runtimeActiveDisplays = {}
+-- Prevent re-entrant code from loading displays while Resume tears active lifecycles down.
+local unloadingAllDisplays = false
 
 -- contains regions for clones
 Private.clones = {};
@@ -1505,13 +1507,6 @@ function M33kAuras.IsPaused()
 end
 
 function Private.Pause()
-  if not paused then
-    wipe(loadedBeforePause)
-    for id, isLoaded in pairs(loaded) do
-      loadedBeforePause[id] = isLoaded
-    end
-  end
-
   for id, states in pairs(triggerState) do
     local changed
     for triggernum in ipairs(states) do
@@ -1671,7 +1666,7 @@ end
 local toLoad = {}
 local toUnload = {};
 local function scanForLoadsImpl(toCheck, event, arg1, ...)
-  if (Private.IsOptionsProcessingPaused()) then
+  if Private.IsOptionsProcessingPaused() or unloadingAllDisplays then
     return;
   end
 
@@ -2004,9 +1999,18 @@ function Private.RegisterLoadEvents()
   end);
 end
 
+local function RunCustomUnload(id)
+  local func = Private.customActionsFunctions[id] and Private.customActionsFunctions[id]["unload"]
+  if func then
+    Private.ActivateAuraEnvironment(id)
+    xpcall(func, Private.GetErrorHandlerId(id, "onUnload"))
+    Private.ActivateAuraEnvironment(nil)
+  end
+end
+
 local function UnloadAll()
   -- Even though auras are collapsed, their finish animation can be running
-  for id in pairs(loaded) do
+  for id in pairs(runtimeActiveDisplays) do
     if Private.regions[id] and Private.regions[id].region then
       Private.CancelAnimation(Private.regions[id].region, true, true, true, true, true, true)
     end
@@ -2042,19 +2046,17 @@ local function UnloadAll()
     triggerSystem.UnloadAll();
   end
 
-  for id in pairs(loadedBeforePause) do
-    local func = Private.customActionsFunctions[id] and Private.customActionsFunctions[id]["unload"]
-    if func then
-      Private.ActivateAuraEnvironment(id)
-      xpcall(func, Private.GetErrorHandlerId(id, "onUnload"))
-      Private.ActivateAuraEnvironment(nil)
-    end
+  for id in pairs(runtimeActiveDisplays) do
+    runtimeActiveDisplays[id] = nil
+    loaded[id] = nil
+    RunCustomUnload(id)
   end
-  wipe(loadedBeforePause)
+  wipe(runtimeActiveDisplays)
   wipe(loaded);
 end
 
 function Private.Resume()
+  unloadingAllDisplays = true
   paused = false;
 
   local suspended = Private.PauseAllDynamicGroups()
@@ -2073,6 +2075,7 @@ function Private.Resume()
 
 
   UnloadAll();
+  unloadingAllDisplays = false
   scanForLoadsImpl();
   if loadEvents["GROUP"] then
     Private.ScanForLoadsGroup(loadEvents["GROUP"])
@@ -2083,6 +2086,7 @@ end
 
 function Private.LoadDisplays(toLoad, ...)
   for id in pairs(toLoad) do
+    runtimeActiveDisplays[id] = true
     local uid = M33kAuras.GetData(id).uid
     Private.RegisterForGlobalConditions(uid);
     triggerState[id].triggers = {};
@@ -2110,11 +2114,11 @@ end
 
 function Private.UnloadDisplays(toUnload, ...)
   for id in pairs(toUnload) do
-    local func = Private.customActionsFunctions[id] and Private.customActionsFunctions[id]["unload"]
-    if func then
-      Private.ActivateAuraEnvironment(id)
-      xpcall(func, Private.GetErrorHandlerId(id, "onUnload"))
-      Private.ActivateAuraEnvironment(nil)
+    local wasActive = runtimeActiveDisplays[id]
+    runtimeActiveDisplays[id] = nil
+
+    if wasActive then
+      RunCustomUnload(id)
     end
   end
   for _, triggerSystem in pairs(triggerSystems) do
@@ -2164,6 +2168,14 @@ function Private.FinishLoadUnload()
   end
 end
 
+local function UnloadDisplayIfLoaded(id)
+  loaded[id] = nil
+
+  if runtimeActiveDisplays[id] then
+    Private.UnloadDisplays({[id] = true})
+  end
+end
+
 -- transient cache of uid => id
 -- eventually, the database will be migrated to index by uid
 -- and this mapping will become redundant
@@ -2187,9 +2199,7 @@ function M33kAuras.Delete(data)
   local parentUid = data.parent and db.displays[data.parent].uid
 
 
-  if loaded[id] then
-    Private.UnloadDisplays({[id] = true})
-  end
+  UnloadDisplayIfLoaded(id)
 
   Private.callbacks:Fire("AboutToDelete", uid, id, parentUid, parentId)
 
@@ -2282,6 +2292,8 @@ end
 function M33kAuras.Rename(data, newid)
   -- since we Add() later in this function, we need to destroy the universe first
   local oldid = data.id
+  UnloadDisplayIfLoaded(oldid)
+
   if(data.parent) then
     local parentData = db.displays[data.parent];
     if(parentData.controlledChildren) then
@@ -2320,10 +2332,6 @@ function M33kAuras.Rename(data, newid)
     triggerSystem.Rename(oldid, newid);
   end
 
-  loaded[newid] = loaded[oldid];
-  loaded[oldid] = nil;
-  loadedBeforePause[newid] = loadedBeforePause[oldid];
-  loadedBeforePause[oldid] = nil;
   loadFuncs[newid] = loadFuncs[oldid];
   loadFuncs[oldid] = nil;
 
@@ -2382,11 +2390,16 @@ function M33kAuras.Rename(data, newid)
   M33kAuras.Add(data)
 
   Private.callbacks:Fire("Rename", data.uid, oldid, newid)
+
+  if paused then
+    Private.ScanForLoads({[newid] = true})
+  end
 end
 
 function Private.Convert(data, newType)
   Private.TimeMachine:DestroyTheUniverse(data.id)
   local id = data.id;
+  UnloadDisplayIfLoaded(id)
   Private.FakeStatesFor(id, false)
 
   if Private.regions[id] then
@@ -2434,6 +2447,9 @@ function Private.Convert(data, newType)
 
 
   M33kAuras.Add(data);
+  if paused then
+    Private.ScanForLoads({[id] = true})
+  end
 
   Private.FakeStatesFor(id, true)
 
@@ -3377,7 +3393,7 @@ function pAdd(data, simpleChange)
         Private.FakeStatesFor(id, visible)
       end
 
-      if not(paused) then
+      if not paused and not unloadingAllDisplays then
         Private.ScanForLoads({[id] = true});
       end
     end
@@ -5623,6 +5639,10 @@ function M33kAuras.IsAuraActive(id)
   local active = triggerState[id]
 
   return active and active.show
+end
+
+function M33kAuras.IsAuraRuntimeActive(id)
+  return runtimeActiveDisplays[id]
 end
 
 -- Attach to Cursor/Frames code
