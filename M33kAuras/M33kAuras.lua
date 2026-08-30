@@ -4363,9 +4363,15 @@ function M33kAuras.GetAuraInstanceTooltipInfo(unit, auraInstanceId, filter)
     if not tooltipData then
       return nil, "", "none", 0
     end
-    local secondLine = not issecretvalue(tooltipData.lines) and tooltipData.lines[2] -- This is the line we want
-    if secondLine and secondLine.leftText then
-      tooltipText = secondLine.leftText
+    if not issecretvalue(tooltipData.lines) then
+      -- when spellID in tooltip CVar is enabled the second line is the spellID
+      local secondLine = tooltipData.lines[2]
+      local thirdLine = tooltipData.lines[3]
+      if secondLine and secondLine.leftText and not secondLine.leftText:find("^Spell ID:") then
+        tooltipText = secondLine.leftText
+      elseif thirdLine and thirdLine.leftText then
+        tooltipText = thirdLine.leftText
+      end
     end
     return tooltipData.dataInstanceID, Private.ParseTooltipText(tooltipText)
   end
