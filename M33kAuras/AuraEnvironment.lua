@@ -314,6 +314,7 @@ end
 
 function Private.ClearAuraEnvironment(id)
   if environment_initialized[id] == 2 then
+    Private.DeactivateAuraEnvironmentLifecycle(id)
     Private.SaveAuraEnvironment(id)
     environment_initialized[id] = nil
     aura_environments[id] = nil
@@ -409,6 +410,7 @@ function Private.ActivateAuraEnvironment(id, cloneId, state, states, onlyConfig)
           xpcall(func, Private.GetErrorHandlerId(id, "init"))
         end
       end
+      Private.ActivateAuraEnvironmentLifecycle(id)
     end
   end
 end

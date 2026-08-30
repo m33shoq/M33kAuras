@@ -314,6 +314,12 @@ Private.loaded = {};
 local loaded = Private.loaded;
 -- Displays whose runtime lifecycle is active and therefore still requires an unload.
 local runtimeActiveDisplays = {}
+-- Aura environments for which the custom onLoad lifecycle has started.
+local runtimeActiveAuraEnvironments = {}
+-- Delay onLoad until all trigger systems have finished loading a display.
+local loadingDisplays = {}
+-- Delay onLoad until a rebuilt display has evaluated its new load conditions.
+local rebuildingDisplays = {}
 -- Prevent re-entrant code from loading displays while Resume tears active lifecycles down.
 local unloadingAllDisplays = false
 
@@ -1828,7 +1834,7 @@ local function scanForLoadsImpl(toCheck, event, arg1, ...)
         end
       end
 
-      if(loaded[id] and not shouldBeLoaded) then
+      if((loaded[id] or runtimeActiveDisplays[id]) and not shouldBeLoaded) then
         toUnload[id] = true;
         changed = changed + 1;
         for parent in Private.TraverseParents(data) do
@@ -1999,13 +2005,50 @@ function Private.RegisterLoadEvents()
   end);
 end
 
-local function RunCustomUnload(id)
+local function HasCustomEnvironmentLifecycle(id)
+  local functions = Private.customActionsFunctions[id]
+  return functions and (functions["load"] or functions["unload"])
+end
+
+function Private.ActivateAuraEnvironmentLifecycle(id)
+  if unloadingAllDisplays or loadingDisplays[id] or rebuildingDisplays[id]
+     or not runtimeActiveDisplays[id] or runtimeActiveAuraEnvironments[id]
+     or not HasCustomEnvironmentLifecycle(id)
+  then
+    return
+  end
+
+  runtimeActiveAuraEnvironments[id] = true
+  local func = Private.customActionsFunctions[id]["load"]
+  if func then
+    xpcall(func, Private.GetErrorHandlerId(id, "onLoad"))
+  end
+end
+
+function Private.DeactivateAuraEnvironmentLifecycle(id)
+  if not runtimeActiveAuraEnvironments[id] then
+    return
+  end
+
+  runtimeActiveAuraEnvironments[id] = nil
   local func = Private.customActionsFunctions[id] and Private.customActionsFunctions[id]["unload"]
   if func then
     Private.ActivateAuraEnvironment(id)
     xpcall(func, Private.GetErrorHandlerId(id, "onUnload"))
     Private.ActivateAuraEnvironment(nil)
   end
+end
+
+local function EnsureAuraEnvironmentLifecycle(id)
+  if unloadingAllDisplays or rebuildingDisplays[id] or not runtimeActiveDisplays[id]
+     or runtimeActiveAuraEnvironments[id] or not HasCustomEnvironmentLifecycle(id)
+  then
+    return
+  end
+
+  Private.ActivateAuraEnvironment(id)
+  Private.ActivateAuraEnvironmentLifecycle(id)
+  Private.ActivateAuraEnvironment(nil)
 end
 
 local function UnloadAll()
@@ -2046,12 +2089,6 @@ local function UnloadAll()
     triggerSystem.UnloadAll();
   end
 
-  for id in pairs(runtimeActiveDisplays) do
-    runtimeActiveDisplays[id] = nil
-    loaded[id] = nil
-    RunCustomUnload(id)
-  end
-  wipe(runtimeActiveDisplays)
   wipe(loaded);
 end
 
@@ -2086,6 +2123,7 @@ end
 
 function Private.LoadDisplays(toLoad, ...)
   for id in pairs(toLoad) do
+    loadingDisplays[id] = true
     runtimeActiveDisplays[id] = true
     local uid = M33kAuras.GetData(id).uid
     Private.RegisterForGlobalConditions(uid);
@@ -2103,12 +2141,8 @@ function Private.LoadDisplays(toLoad, ...)
     triggerSystem.LoadDisplays(toLoad, ...);
   end
   for id in pairs(toLoad) do
-    local func = Private.customActionsFunctions[id] and Private.customActionsFunctions[id]["load"]
-    if func then
-      Private.ActivateAuraEnvironment(id)
-      xpcall(func, Private.GetErrorHandlerId(id, "onLoad"))
-      Private.ActivateAuraEnvironment(nil)
-    end
+    loadingDisplays[id] = nil
+    EnsureAuraEnvironmentLifecycle(id)
   end
 end
 
@@ -2118,7 +2152,7 @@ function Private.UnloadDisplays(toUnload, ...)
     runtimeActiveDisplays[id] = nil
 
     if wasActive then
-      RunCustomUnload(id)
+      Private.DeactivateAuraEnvironmentLifecycle(id)
     end
   end
   for _, triggerSystem in pairs(triggerSystems) do
@@ -3299,6 +3333,7 @@ function pAdd(data, simpleChange)
     else -- Non group aura
       -- Make sure that we don't have a controlledChildren member.
       data.controlledChildren = nil
+      rebuildingDisplays[id] = true
       local visible
       if (M33kAuras.IsOptionsOpen()) then
         visible = Private.FakeStatesFor(id, false)
@@ -3396,6 +3431,8 @@ function pAdd(data, simpleChange)
       if not paused and not unloadingAllDisplays then
         Private.ScanForLoads({[id] = true});
       end
+      rebuildingDisplays[id] = nil
+      EnsureAuraEnvironmentLifecycle(id)
     end
 
     Private.UpdateSoundIcon(data)
