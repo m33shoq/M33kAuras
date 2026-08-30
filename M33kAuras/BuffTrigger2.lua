@@ -1829,7 +1829,7 @@ do
   local _time, _unit, _filter
 
   local function HandleAura(aura)
-    if (not aura or not aura.name) then
+    if (not aura or not aura.name or issecretvalue(aura.spellId)) then
       return
     end
     local debuffClass = FixDebuffClass(aura.dispelName, aura.spellId)
@@ -4159,7 +4159,7 @@ local AugmentMatchDataMulti
 do
   local _matchData, _unit, _sourceGUID, _nameKey, _spellKey
   local function HandleAura(aura)
-    if (not aura or not aura.name) then
+    if (not aura or not aura.name or issecretvalue(aura.spellId)) then
       return
     end
     local debuffClass = FixDebuffClass(aura.dispelName, aura.spellId)
@@ -4266,7 +4266,7 @@ local CheckAurasMulti
 do
   local _base, _unit
   local function HandleAura(aura)
-    if (not aura or not aura.name) then
+    if (not aura or not aura.name or issecretvalue(aura.spellId)) then
       return
     end
     local debuffClass = FixDebuffClass(aura.dispelName, aura.spellId)
