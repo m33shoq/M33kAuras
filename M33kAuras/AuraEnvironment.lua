@@ -417,6 +417,7 @@ end
 
 EventRegistry:RegisterCallback("SetItemRef", function(_, link, text, button, chatFrame)
   local linkType, addonName, waID, uid = strsplit(":", link)
+  waID = waID and C_EncodingUtil.DecodeBase64(waID)
   if linkType == "addon" and addonName == "M33kAuras" then
     if button == "RightButton" then
       if (not Private.LoadOptions() or not M33kAuras.IsOptionsOpen()) then
@@ -434,6 +435,7 @@ end)
 local function getHyperlinkForPrint()
   local id, uid = current_aura_env.id, current_uid
   if id then
+    id = C_EncodingUtil.EncodeBase64(id)
     return string.format("|Haddon:M33kAuras:%s:%s|h|cff666666[WA]|r|h", id, uid)
   else
     return "Unknown Aura"
