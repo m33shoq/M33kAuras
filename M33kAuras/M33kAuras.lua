@@ -3432,7 +3432,11 @@ function pAdd(data, simpleChange)
         Private.ScanForLoads({[id] = true});
       end
       rebuildingDisplays[id] = nil
-      EnsureAuraEnvironmentLifecycle(id)
+      -- Imports and options edits can rebuild children before their parents. Resume starts
+      -- their environment lifecycle after the complete display hierarchy is available.
+      if not paused then
+        EnsureAuraEnvironmentLifecycle(id)
+      end
     end
 
     Private.UpdateSoundIcon(data)
