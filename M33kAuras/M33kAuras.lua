@@ -6355,7 +6355,9 @@ local textSymbols = {
 function M33kAuras.ReplaceRaidMarkerSymbols(txt)
   local start = 1
 
-  if issecretvalue(txt) then return txt end
+  if issecretvalue(txt) then
+    return C_ChatInfo.ReplaceIconAndGroupExpressions(txt, false, true)
+  end
   while true do
     local firstChar = txt:find("{", start, true)
     if not firstChar then
