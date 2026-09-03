@@ -1,5 +1,5 @@
 local MAJOR_VERSION = "LibGetFrame-1.0"
-local MINOR_VERSION = 74
+local MINOR_VERSION = 77
 if not LibStub then
   error(MAJOR_VERSION .. " requires LibStub.")
 end
@@ -41,11 +41,14 @@ local defaultFramePriorities = {
   "^AshToAshUnit%d+Unit%d+", -- AshToAsh
   "^Cell", -- Cell
   "^XPerl_Raid_Grp", -- xperl
-  "^DandersRaidGroup%dHeader$", -- Danders (New format?
-  "^DandersRaidGroup%dHeaderUnitButton%d+$", -- Danders (New format?)
+  "^DandersRaidGroup%dHeader$", -- Danders
+  "^DandersRaidGroup%dHeaderUnitButton%d+$", -- Danders
   "^DandersFlatRaidHeader$", -- Danders (alternative style name)
   "^DandersFlatRaidHeaderUnitButton%d+$", -- Danders (alternative style name)
-  "^DandersRaidFrame", -- Danders (depricated?)
+  "^DandersRaidFrame", -- Danders
+  "^ERFExtraFrame%d+$", -- EllesmereUI (extra/spotlight frames, preferred over the regular raid frames)
+  "^ERFGroupHeader%dUnitButton%d+$", -- EllesmereUI (separated groups)
+  "^ERFFlatHeaderUnitButton%d+$", -- EllesmereUI (merged groups)
   -- party frames
   "^AleaUI_GroupHeader", -- Alea
   "^SUFHeaderparty", --suf
@@ -56,8 +59,11 @@ local defaultFramePriorities = {
   "^XPerl_party%d", -- xperl
   "^DandersPartyHeader$", -- Danders
   "^DandersPartyHeaderUnitButton%d$", -- Danders
-  "^DandersFrames_Party", -- Danders (depricated?)
-  "^DandersFrames_Player$", -- Danders (used for party frames) (depricated?)
+  "^DandersFrames_Party", -- Danders
+  "^DandersFrames_Player$", -- Danders (used for party frames)
+  "^ERFPartyHeaderUnitButton%d+$", -- EllesmereUI
+  "^ERFPartySelfButton$", -- EllesmereUI (static self frame)
+  "^SpotlightsSlotHeader%d+UnitButton%d+$", -- Spotlights
   "^CompactRaid", -- blizz
   "^CompactParty", -- blizz
   "^PartyFrame",
@@ -67,6 +73,7 @@ local defaultFramePriorities = {
   "^LUFHeaderbossUnitButton%d$", -- luf
   "^Boss%dTargetFrame$", -- blizz
   "^UUF_Boss%d$", -- unhalted
+  "^EllesmereUIUnitFrames_Boss%d$", -- EllesmereUI
   -- player frame
   "^InvenUnitFrames_Player$",
   "^SUFUnitplayer$",
@@ -76,6 +83,7 @@ local defaultFramePriorities = {
   "^oUF_.-Player$",
   "^XPerl_Player$",
   "^UUF_Player$",
+  "^EllesmereUIUnitFrames_Player$", -- EllesmereUI
   "^PlayerFrame$",
 }
 local getDefaultFramePriorities = function()
@@ -93,6 +101,7 @@ local defaultPlayerFrames = {
   "^oUF_PlayerPlate$",
   "^XPerl_Player$",
   "^UUF_Player$",
+  "^EllesmereUIUnitFrames_Player$", -- EllesmereUI
   "^PlayerFrame$",
 }
 local getDefaultPlayerFrames = function()
@@ -109,6 +118,7 @@ local defaultTargetFrames = {
   "^TargetFrame$",
   "^hbExtra_HealUnit$",
   "^UUF_Target$",
+  "^EllesmereUIUnitFrames_Target$", -- EllesmereUI
   "^XPerl_Target$"
 }
 local getDefaultTargetFrames = function()
@@ -126,6 +136,7 @@ local defaultTargettargetFrames = {
   "^UUF_TargetTarget$",
   "^TargetTargetFrame$",
   "^XPerl_TargetTarget$",
+  "^EllesmereUIUnitFrames_TargetTarget$", -- EllesmereUI
   "^TargetFrameToT$"
 }
 local getDefaultTargettargetFrames = function()
@@ -145,6 +156,8 @@ local defaultPartyFrames = {
   "^DandersPartyHeaderUnitButton%d$",
   "^DandersFrames_Player$", -- depricated?
   "^DandersFrames_Party", -- depricated?
+  "^ERFPartyHeaderUnitButton%d+$", -- EllesmereUI
+  "^ERFPartySelfButton$", -- EllesmereUI (static self frame)
   "^PartyFrame",
   "^CompactParty",
 }
@@ -168,6 +181,7 @@ local defaultFocusFrames = {
   "^FocusFrame$",
   "^hbExtra_HealUnit$",
   "^UUF_Focus$",
+  "^EllesmereUIUnitFrames_Focus$", -- EllesmereUI
   "^XPerl_Focus$"
 }
 local getDefaultFocusFrames = function()
@@ -190,11 +204,14 @@ local defaultRaidFrames = {
   "^SUFHeaderraid",
   "^LUFHeaderraid",
   "^XPerl_Raid_Grp",
-  "^DandersRaidGroup%dHeader$", -- New Danders format?
-  "^DandersRaidGroup%dHeaderUnitButton%d+$", -- New Danders format?
+  "^DandersRaidGroup%dHeader$", -- New Danders format
+  "^DandersRaidGroup%dHeaderUnitButton%d+$", -- New Danders format
   "^DandersFlatRaidHeader$", -- alternative style name
   "^DandersFlatRaidHeaderUnitButton%d+$", -- alternative style name
-  "^DandersRaidFrame", -- depricated?
+  "^DandersRaidFrame", -- depricated
+  "^ERFExtraFrame%d+$", -- EllesmereUI (extra/spotlight frames)
+  "^ERFGroupHeader%dUnitButton%d+$", -- EllesmereUI (separated groups)
+  "^ERFFlatHeaderUnitButton%d+$", -- EllesmereUI (merged groups)
   "^CompactRaid",
 }
 local getDefaultRaidFrames = function()
@@ -206,6 +223,7 @@ local defaultBossFrames = {
   "^SUFHeaderbossUnitButton%d$",
   "^LUFHeaderbossUnitButton%d$",
   "^UUF_Boss%d$",
+  "^EllesmereUIUnitFrames_Boss%d$", -- EllesmereUI
   "^Boss%dTargetFrame$",
 }
 local getDefaultBossFrames = function()
