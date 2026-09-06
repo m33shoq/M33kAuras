@@ -39,6 +39,7 @@ manual-changelog:
   markup-type: markdown
 
 ignore:
+  - tests
   - README.md
   - CONTRIBUTING.md
   - babelfish.lua
