@@ -11,6 +11,7 @@ require("helpers") -- exits with a clear message on an unsupported Lua version
 local tests = {
   "animations_test.lua",
   "aura_environment_test.lua",
+  "aura_environment_stack_test.lua",
   "common_options_test.lua",
 }
 
