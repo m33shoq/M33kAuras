@@ -426,6 +426,13 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
   local remainingProperty = progressSource[8]
   local useAdditionalProgress = progressSource[9]
 
+  if progressType == "durationObject" and (not state or not M33kAuras.IsDurationObject(state.durationObject)) then
+    state = nil
+  end
+  if not state or progressType ~= "durationObject" then
+    self.durationObject = nil
+  end
+
   if not state then
     self.minProgress, self.maxProgress = nil, nil
     self.progressType = "timed"
@@ -443,35 +450,17 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
     end
   elseif progressType == "durationObject" then
     local inverse = inverseProperty and state[inverseProperty]
+    self.progressType = "durationObject"
     self.durationObject = state.durationObject
     self.inverse = inverse
-    -- dont use secret values to allow using ticks
-    local adjustMin, max
-    if minMaxConfig.adjustedMin then
-      adjustMin = minMaxConfig.adjustedMin
-    elseif minMaxConfig.adjustedMinRelPercent then
-      adjustMin = minMaxConfig.adjustedMinRelPercent * 1
-    else
-      adjustMin = 0
-    end
-    if minMaxConfig.adjustedMax then
-      max = minMaxConfig.adjustedMax
-    elseif minMaxConfig.adjustedMaxRelPercent then
-      max = minMaxConfig.adjustedMaxRelPercent * 1
-    else
-      max = 1
-    end
-    self.minProgress, self.maxProgress = adjustMin, max
+    -- Native duration renderers ignore adjusted bounds.
+    self.minProgress, self.maxProgress = 0, self.durationObject:GetTotalDuration()
+    self.value, self.total = nil, nil
+    self.duration, self.expirationTime = nil, nil
+    self.remaining, self.paused, self.modRate = nil, nil, nil
     if self.UpdateDuration then
       self:UpdateDuration()
     end
-    -- if self.SetAdditionalProgress then
-    --   if useAdditionalProgress then
-    --     self:SetAdditionalProgress(state.additionalProgress, 0, self.durationObject:GetTotalDuration(), false)
-    --   else
-    --     self:SetAdditionalProgress(nil)
-    --   end
-    -- end
   elseif progressType == "number" then
     local value = state[property]
     if type(value) ~= "number" then value = 0 end
@@ -627,6 +616,7 @@ local function UpdateProgressFromAuto(self, minMaxConfig, state)
   elseif state.progressType == "durationObject" and M33kAuras.IsDurationObject(state.durationObject) then
     UpdateProgressFromState(self, minMaxConfig, state, autoDurationObjectProgressSource)
   else
+    self.durationObject = nil
     self.minProgress, self.maxProgress = nil, nil
     self.progressType = "timed"
     self.duration = 0
@@ -645,6 +635,7 @@ local function UpdateProgressFromAuto(self, minMaxConfig, state)
 end
 
 local function UpdateProgressFromManual(self, minMaxConfig, state, value, total)
+  self.durationObject = nil
   value = type(value) == "number" and value or 0
   total = type(total) == "number" and total or 0
   local adjustMin
@@ -699,6 +690,44 @@ local function UpdateProgress(self)
   self.subRegionEvents:Notify("UpdateProgress", self.state, self.states)
 end
 
+-- Requires an empty destination; preserves missing fields and secret values without arithmetic.
+local function ReadProgressSource(progress, source, state, states, parent)
+  local trigger = source[1]
+  if trigger == 0 then
+    progress.progressType, progress.value = "static", source[3]
+    return
+  end
+  local sourceType, property = source[2], source[3]
+  local pausedProperty, remainingProperty = source[7], source[8]
+  if trigger == -2 or trigger == -1 then
+    state = trigger == -2 and parent or state
+    if not state then return end
+    sourceType = state.progressType
+    property = sourceType == "static" and "value" or "expirationTime"
+    pausedProperty, remainingProperty = "paused", "remaining"
+  else
+    state = states and states[trigger]
+  end
+  if not state then return end
+  if sourceType == "durationObject" then
+    progress.progressType, progress.durationObject = "durationObject", state.durationObject
+    return
+  end
+  if not property then return end
+  if sourceType == "number" or sourceType == "static" then
+    progress.progressType, progress.value = "static", state[property]
+  elseif sourceType == "timer" or sourceType == "timed" then
+    progress.progressType, progress.expirationTime = "timed", state[property]
+    progress.hasSecretTimerState = hasanysecretvalues(pausedProperty and state[pausedProperty],
+                                                    remainingProperty and state[remainingProperty])
+  elseif sourceType == "elapsedTimer" then
+    -- Secret start/duration values cannot be added to produce an expiration time.
+    progress.hasSecretTimerState = hasanysecretvalues(state[property], source[4] and state[source[4]])
+    progress.progressType = "elapsedTimer"
+  end
+end
+
+Private.ReadProgressSource = ReadProgressSource
 Private.UpdateProgressFrom = UpdateProgressFrom
 
 local function SetAnimAlpha(self, alpha)

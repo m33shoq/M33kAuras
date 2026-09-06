@@ -1163,7 +1163,7 @@ local function ProgressOptions(data)
     type = "toggle",
     width = M33kAuras.normalWidth,
     name = L["Set Minimum Progress"],
-    desc = L["Values/Remaining Time below this value are displayed as zero progress."],
+    desc = L["Values/Remaining Time below this value are displayed as zero progress."] .. " " .. L["Duration-object progress always uses the full duration."],
     order = order + 1,
     set = function(info, value)
       data.useAdjustededMin = value
@@ -1196,7 +1196,7 @@ local function ProgressOptions(data)
     type = "toggle",
     width = M33kAuras.normalWidth,
     name = L["Set Maximum Progress"],
-    desc = L["Values/Remaining Time above this value are displayed as full progress."],
+    desc = L["Values/Remaining Time above this value are displayed as full progress."] .. " " .. L["Duration-object progress always uses the full duration."],
     order = order + 4,
     set = function(info, value)
       data.useAdjustededMax = value
@@ -1691,7 +1691,7 @@ local function ProgressOptionsForSubElement(parentData, data, options, startOrde
     type = "toggle",
     width = M33kAuras.normalWidth,
     name = L["Set Minimum Progress"],
-    desc = L["Values/Remaining Time below this value are displayed as zero progress."],
+    desc = L["Values/Remaining Time below this value are displayed as zero progress."] .. " " .. L["Duration-object progress always uses the full duration."],
     order = startOrder + 0.4,
     set = function(info, value)
       data.useAdjustededMin = value
@@ -1735,7 +1735,7 @@ local function ProgressOptionsForSubElement(parentData, data, options, startOrde
     type = "toggle",
     width = M33kAuras.normalWidth,
     name = L["Set Maximum Progress"],
-    desc = L["Values/Remaining Time above this value are displayed as full progress."],
+    desc = L["Values/Remaining Time above this value are displayed as full progress."] .. " " .. L["Duration-object progress always uses the full duration."],
     order = startOrder + 0.7,
     set = function(info, value)
       data.useAdjustededMax = value

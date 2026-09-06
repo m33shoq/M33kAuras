@@ -254,7 +254,9 @@ local function createOptions(parentData, data, index, subIndex)
       options["tick_progress_source" .. i] = {
         type = "select",
         width = M33kAuras.normalWidth,
-        name = L["Progress Source"],
+        name = function()
+          return data.tick_placement_mode == "AtTimestamp" and L["Timestamp Source"] or L["Progress Source"]
+        end,
         order = 4 + i / 100,
         control = "M33kAurasTwoColumnDropdown",
         values = OptionsPrivate.Private.GetProgressSourcesForUi(parentData, true),
@@ -274,17 +276,24 @@ local function createOptions(parentData, data, index, subIndex)
           M33kAuras.Add(parentData)
         end,
         hidden = function()
-          return not(data.tick_placement_mode == "ValueOffset")
+          return data.tick_placement_mode ~= "ValueOffset" and data.tick_placement_mode ~= "AtTimestamp"
         end
       }
 
       options["tick_placement" .. i] = {
         type = "input",
         width = M33kAuras.normalWidth - 0.15,
-        name = L["Tick Placement"],
+        name = function()
+          return data.tick_placement_mode == "AtTimestamp" and L["Time Offset"] or L["Tick Placement"]
+        end,
         order = 4 + i / 100 + 0.001,
         validate = M33kAuras.ValidateNumeric,
-        desc = L["Enter in a value for the tick's placement."],
+        desc = function()
+          if data.tick_placement_mode == "AtTimestamp" then
+            return L["Offset in seconds from the selected absolute timestamp. Requires timed or duration-object progress. Auto uses the parent's end time."]
+          end
+          return L["Enter in a value for the tick's placement."]
+        end,
         get = function(info)
           return data.tick_placements[i] or ""
         end,
@@ -301,6 +310,12 @@ local function createOptions(parentData, data, index, subIndex)
         order = 4 + i / 100 + 0.002,
         func = function()
           tremove(data.tick_placements, i)
+          if data.progressSources then
+            for sourceIndex = i, #data.tick_placements do
+              data.progressSources[sourceIndex] = data.progressSources[sourceIndex + 1]
+            end
+            data.progressSources[#data.tick_placements + 1] = nil
+          end
           M33kAuras.Add(parentData)
           M33kAuras.ClearAndUpdateOptions(parentData.id)
         end,

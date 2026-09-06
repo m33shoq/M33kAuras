@@ -1333,6 +1333,7 @@ local funcs = {
       self.secretProgress = "value"
       self:SetProgressSecret()
     else
+      self.secretProgress = nil
       local progress = 0;
       if (self.total ~= 0) then
         progress = self.value / self.total;
@@ -1497,6 +1498,19 @@ local funcs = {
   end,
   GetInverse = function(self)
     return self.inverseDirection
+  end,
+  -- Includes display/state inversions. Anchor to it without reading protected coordinates.
+  GetNativeProgressAnchor = function(self)
+    if self.bar.activeMask ~= "secret" then return end
+    if self.effectiveOrientation == "HORIZONTAL" then
+      return self.bar.fgMaskSecret, "RIGHT"
+    elseif self.effectiveOrientation == "HORIZONTAL_INVERSE" then
+      return self.bar.fgMaskSecret, "LEFT"
+    elseif self.effectiveOrientation == "VERTICAL" then
+      return self.bar.fgMaskSecret, "BOTTOM"
+    elseif self.effectiveOrientation == "VERTICAL_INVERSE" then
+      return self.bar.fgMaskSecret, "TOP"
+    end
   end,
   ReOrient = function(self)
     if self.effectiveOrientation == "HORIZONTAL_INVERSE" then

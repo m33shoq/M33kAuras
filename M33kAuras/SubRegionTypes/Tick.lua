@@ -139,7 +139,50 @@ local auraBarAnchorInverse = {
 local function create()
   local subRegion = CreateFrame("Frame", nil, UIParent)
   subRegion.ticks = {}
+  subRegion.positionBars = {}
+  local setFrameLevel = subRegion.SetFrameLevel
+  subRegion.SetFrameLevel = function(self, level)
+    setFrameLevel(self, level)
+    for _, bar in pairs(self.positionBars) do
+      bar.clipFrame:SetFrameLevel(level)
+      bar.tickFrame:SetFrameLevel(level)
+    end
+  end
   return subRegion
+end
+
+local function usableNumber(value)
+  if type(value) ~= "number" then return false end
+  if issecretvalue(value) then
+    return true
+  end
+  return value == value and value > -math.huge and value < math.huge
+end
+
+local function createPositionBar(parent)
+  local bar = CreateFrame("StatusBar", nil, parent)
+  bar:SetStatusBarTexture("Interface\\AddOns\\M33kAuras\\Media\\Textures\\Square_FullWhite")
+  bar:SetAlpha(0)
+  return bar
+end
+
+local function resetPositionBar(self, i)
+  local bar = self.positionBars[i]
+  if bar and bar.positionActive then
+    bar.positionActive = nil
+    bar:Hide()
+    bar:ClearAllPoints()
+    bar:SetMinMaxValues(0, 1)
+    bar:SetValue(0)
+    if bar.offsetBar then
+      bar.offsetBar:Hide()
+      bar.offsetBar:ClearAllPoints()
+      bar.offsetBar:SetMinMaxValues(0, 1)
+      bar.offsetBar:SetValue(0)
+    end
+    bar.clipFrame:Hide()
+    self.ticks[i]:SetParent(self)
+  end
 end
 
 local function onAcquire(subRegion)
@@ -147,6 +190,22 @@ local function onAcquire(subRegion)
 end
 
 local function onRelease(subRegion)
+  if subRegion.parent then
+    subRegion.parent.subRegionEvents:RemoveSubscriber("FrameTick", subRegion)
+    subRegion.parent.subRegionEvents:RemoveSubscriber("UpdateProgress", subRegion)
+    subRegion.parent.subRegionEvents:RemoveSubscriber("OrientationChanged", subRegion)
+    subRegion.parent.subRegionEvents:RemoveSubscriber("InverseChanged", subRegion)
+    subRegion.parent.subRegionEvents:RemoveSubscriber("OnRegionSizeChanged", subRegion)
+  end
+  subRegion.FrameTick = nil
+  for i, tick in ipairs(subRegion.ticks) do
+    tick:Hide()
+    tick:ClearAllPoints()
+    resetPositionBar(subRegion, i)
+  end
+  subRegion.hasProgress = {}
+  subRegion.progressData = {}
+  subRegion.nativeProgressData = {}
   subRegion:Hide()
 end
 
@@ -154,7 +213,15 @@ local funcs = {
   UpdateProgress = function(self, state, states)
     for i, progressSource in ipairs(self.progressSources) do
       self.progressData[i] = {}
-      Private.UpdateProgressFrom(self.progressData[i], progressSource, {}, state, states, self.parent)
+      local native = {}
+      self.nativeProgressData[i] = native
+      Private.ReadProgressSource(native, progressSource, state, states, self.parent)
+      if native.progressType ~= "durationObject"
+        and not hasanysecretvalues(native.value, native.expirationTime)
+        and not native.hasSecretTimerState
+      then
+        Private.UpdateProgressFrom(self.progressData[i], progressSource, {}, state, states, self.parent)
+      end
     end
     self:UpdateVisible()
     self:UpdateTickPlacement();
@@ -261,15 +328,27 @@ local funcs = {
     end
   end,
   UpdateTickPlacementOne = function(self, i)
+    if self.tick_placement_mode == "AtTimestamp" then
+      self:UpdateTimestampTickPlacement(i)
+      return
+    end
+    local durationProgress = self.parent.progressType == "durationObject"
+    if durationProgress and not M33kAuras.IsDurationObject(self.parent.durationObject) then
+      self:HideNativeTick(i)
+      return
+    end
     local offsetx, offsety = 0, 0
     local width = self.parentMajorSize
 
     local minValue, maxValue = self.parent:GetMinMaxProgress()
-    if hasanysecretvalues(minValue, maxValue) then
-      self.hasProgress[i] = false
-      self:UpdateVisible(i)
+    local native = self.nativeProgressData[i]
+    if durationProgress or hasanysecretvalues(minValue, maxValue)
+      or (self.tick_placement_mode == "ValueOffset" and native and hasanysecretvalues(native.value, native.expirationTime))
+    then
+      self:UpdateNativeTickPlacement(i, minValue, maxValue)
       return
     end
+    resetPositionBar(self, i)
     local valueRange = maxValue - minValue
     local inverse = self.inverse_direction
 
@@ -332,6 +411,234 @@ local funcs = {
                        offsetx + self.tick_xOffset,
                        offsety + self.tick_yOffset)
   end,
+  HideNativeTick = function(self, i)
+    self.hasProgress[i] = false
+    self:UpdateVisibleOne(i)
+    self.ticks[i]:ClearAllPoints()
+    resetPositionBar(self, i)
+  end,
+  UpdateTimestampTickPlacement = function(self, i)
+    local progress = self.nativeProgressData[i]
+    local tickTime
+    if progress then
+      if progress.progressType == "static" then
+        tickTime = progress.value
+      elseif progress.progressType == "timed" then
+        tickTime = progress.expirationTime
+      elseif progress.progressType == "durationObject" and M33kAuras.IsDurationObject(progress.durationObject) then
+        tickTime = progress.durationObject:GetEndTime()
+      end
+    end
+    if self.parent.progressType == "durationObject" then
+      local durationObject = self.parent.durationObject
+      if not M33kAuras.IsDurationObject(durationObject) then
+        self:HideNativeTick(i)
+        return
+      end
+      local minValue, maxValue = self.parent:GetMinMaxProgress()
+      self:PlaceNativeTick(i, tickTime, self.tick_placements[i], true, minValue, maxValue, durationObject)
+    elseif self.parent.progressType == "timed" and self.parent.secretProgress ~= "value"
+      and not hasanysecretvalues(self.parent.expirationTime, self.parent.duration)
+      and usableNumber(self.parent.expirationTime) and usableNumber(self.parent.duration)
+      and self.parent.duration > 0
+    then
+      -- The interval stays fixed between state updates, including while paused.
+      self:PlaceNativeTick(i, tickTime, self.tick_placements[i], true,
+                          self.parent.expirationTime - self.parent.duration, self.parent.expirationTime)
+    else
+      self:HideNativeTick(i)
+    end
+  end,
+  UpdateNativeTickPlacement = function(self, i, minValue, maxValue)
+    local mode = self.tick_placement_mode
+    local value, offset, reverse = self.tick_placements[i], 0, false
+    if issecretvalue(value) or not usableNumber(value) then
+      self:HideNativeTick(i)
+      return
+    end
+    local rangeMin, rangeMax = minValue, maxValue
+    local followParent = false
+    if mode == "AtPercent" then
+      if value < 0 or value > 100 then
+        self:HideNativeTick(i)
+        return
+      end
+      rangeMin, rangeMax = 0, 100
+    elseif mode == "AtMissingValue" then
+      if issecretvalue(maxValue) then
+        -- Reversing a zero-based range represents max - value without secret arithmetic.
+        if issecretvalue(minValue) or minValue ~= 0 then
+          self:HideNativeTick(i)
+          return
+        end
+        reverse = true
+      else
+        value = maxValue - value
+      end
+    elseif mode == "ValueOffset" then
+      local native, progress = self.nativeProgressData[i], self.progressData[i]
+      offset = value
+      value = nil
+      if native and native.progressType == "static" then
+        value = native.value
+      elseif native and native.progressType == "durationObject" and self.parent.progressType == "durationObject"
+        and native.durationObject == self.parent.durationObject
+      then
+        -- Other duration objects would need rescaling to the parent's total.
+        value, followParent = 0, true
+      elseif native and not native.hasSecretTimerState
+        and (native.progressType == "elapsedTimer" or (native.progressType == "timed"
+          and usableNumber(native.expirationTime) and not issecretvalue(native.expirationTime)))
+        and progress and progress.progressType == "timed"
+      then
+        value = progress.paused and progress.remaining or progress.expirationTime - GetTime()
+      end
+    elseif mode ~= "AtValue" then
+      self:HideNativeTick(i)
+      return
+    end
+    self:PlaceNativeTick(i, value, offset, reverse, rangeMin, rangeMax, nil, followParent)
+  end,
+  PlaceNativeTick = function(self, i, value, offset, reverse, minValue, maxValue, timestampObject, followParent)
+    if not usableNumber(value) or issecretvalue(offset) or not usableNumber(offset) then
+      self:HideNativeTick(i)
+      return
+    end
+    if not hasanysecretvalues(minValue, maxValue) and maxValue <= minValue then
+      self:HideNativeTick(i)
+      return
+    end
+    if offset ~= 0 and not followParent and not issecretvalue(value) then
+      value = value + offset
+      offset = 0
+    end
+    if not usableNumber(value) then
+      self:HideNativeTick(i)
+      return
+    end
+
+    local span
+    if offset ~= 0 then
+      if not hasanysecretvalues(minValue, maxValue) then
+        span = maxValue - minValue
+      elseif not issecretvalue(minValue) and minValue == 0 then
+        span = maxValue
+      else
+        self:HideNativeTick(i)
+        return
+      end
+    end
+    local positionBar = self:GetPositionBar(i)
+    if timestampObject then
+      positionBar:SetMinMaxValues(timestampObject:GetStartTime(), timestampObject:GetEndTime())
+    else
+      positionBar:SetMinMaxValues(minValue, maxValue)
+    end
+    if offset ~= 0 then
+      local offsetBar = self:GetOffsetBar(positionBar)
+      offsetBar:SetMinMaxValues(0, span)
+    end
+    self:AnchorNativeTick(i, value, offset, reverse, followParent)
+  end,
+  GetPositionBar = function(self, i)
+    local positionBar = self.positionBars[i]
+    if not positionBar then
+      positionBar = createPositionBar(self)
+      -- Keep the tick outside the transparent positioning bars to avoid inheriting their alpha.
+      positionBar.clipFrame = CreateFrame("Frame", nil, self)
+      positionBar.clipFrame:SetClipsChildren(true)
+      positionBar.tickFrame = CreateFrame("Frame", nil, positionBar.clipFrame)
+      positionBar.tickFrame:SetAllPoints(positionBar.clipFrame)
+      self.positionBars[i] = positionBar
+    end
+    return positionBar
+  end,
+  GetOffsetBar = function(self, positionBar)
+    if not positionBar.offsetBar then
+      positionBar.offsetBar = createPositionBar(self)
+    end
+    return positionBar.offsetBar
+  end,
+  AnchorNativeTick = function(self, i, value, offset, reverse, followParent)
+    local positionBar = self.positionBars[i]
+    positionBar:ClearAllPoints()
+    positionBar:SetAllPoints(self.parent.bar)
+    local inverse = self.inverse_direction
+    if reverse then
+      inverse = not inverse
+    end
+    if self.parent.inverse then
+      inverse = not inverse
+    end
+    local side = inverse and auraBarAnchorInverse or auraBarAnchor
+    local endSide = inverse and auraBarAnchor or auraBarAnchorInverse
+    local startEdge = side[self.orientation]
+    local endEdge = endSide[self.orientation]
+    positionBar:SetOrientation(self.vertical and "VERTICAL" or "HORIZONTAL")
+    positionBar:SetReverseFill(startEdge == "RIGHT" or startEdge == "TOP")
+    positionBar:SetValue(value)
+    positionBar.positionActive = true
+    positionBar:Show()
+    local anchor = positionBar:GetStatusBarTexture()
+    local anchorEdge = endEdge
+    if followParent then
+      anchor, anchorEdge = self.parent:GetNativeProgressAnchor()
+      if not anchor then
+        self:HideNativeTick(i)
+        return
+      end
+    end
+    if offset ~= 0 then
+      local offsetBar = positionBar.offsetBar
+      -- Each bar clamps independently; clipping only removes the final overflow.
+      offsetBar:ClearAllPoints()
+      offsetBar:SetSize(self.parent.bar:GetRealSize())
+      local offsetStart, offsetEnd = startEdge, endEdge
+      if offset < 0 then
+        offsetStart, offsetEnd = endEdge, startEdge
+      end
+      offsetBar:SetOrientation(self.vertical and "VERTICAL" or "HORIZONTAL")
+      offsetBar:SetReverseFill(offsetStart == "RIGHT" or offsetStart == "TOP")
+      offsetBar:SetPoint(offsetStart, anchor, anchorEdge)
+      offsetBar:SetValue(math.abs(offset))
+      offsetBar:Show()
+      anchor, anchorEdge = offsetBar:GetStatusBarTexture(), offsetEnd
+    elseif positionBar.offsetBar then
+      positionBar.offsetBar:Hide()
+      positionBar.offsetBar:ClearAllPoints()
+      positionBar.offsetBar:SetMinMaxValues(0, 1)
+      positionBar.offsetBar:SetValue(0)
+    end
+    self:UpdateNativeClip(i)
+    positionBar.clipFrame:SetFrameLevel(self:GetFrameLevel())
+    positionBar.tickFrame:SetFrameLevel(self:GetFrameLevel())
+    positionBar.clipFrame:Show()
+    self.ticks[i]:SetParent(positionBar.tickFrame)
+    self.ticks[i]:ClearAllPoints()
+    self.ticks[i]:SetPoint("CENTER", anchor, anchorEdge,
+                          self.tick_xOffset, self.tick_yOffset)
+    self.hasProgress[i] = true
+    self:UpdateVisibleOne(i)
+  end,
+  UpdateNativeClip = function(self, i)
+    local positionBar = self.positionBars[i]
+    if not positionBar or not positionBar.positionActive then return end
+    local clip = positionBar.clipFrame
+    clip:ClearAllPoints()
+    -- Clip only the progress axis, allowing for tick length, rotation and offsets.
+    local width, height = self.parent.bar:GetRealSize()
+    local minorSize = self.vertical and width or height
+    local length = self.automatic_length and minorSize or self.tick_length
+    local margin = math.abs(length) + math.abs(self.tick_thickness)
+      + math.abs(self.tick_xOffset) + math.abs(self.tick_yOffset)
+    if self.vertical then
+      clip:SetPoint("BOTTOMLEFT", self.parent.bar, "BOTTOMLEFT", -margin, 0)
+      clip:SetPoint("TOPRIGHT", self.parent.bar, "TOPRIGHT", margin, 0)
+    else
+      clip:SetPoint("BOTTOMLEFT", self.parent.bar, "BOTTOMLEFT", 0, -margin)
+      clip:SetPoint("TOPRIGHT", self.parent.bar, "TOPRIGHT", 0, margin)
+    end
+  end,
   SetAutomaticLength = function(self, automatic_length)
     if self.automatic_length ~= automatic_length then
       self.automatic_length = automatic_length
@@ -351,6 +658,9 @@ local funcs = {
     end
   end,
   UpdateTickSize = function(self)
+    for i in ipairs(self.ticks) do
+      self:UpdateNativeClip(i)
+    end
     if self.vertical then
       for i, tick in ipairs(self.ticks) do
         tick:SetHeight(self.tick_thickness)
@@ -362,13 +672,15 @@ local funcs = {
     end
 
     local length = self.automatic_length and self.parentMinorSize or self.tick_length
+    local width, height = self.parent.bar:GetRealSize()
+    local nativeLength = self.automatic_length and (self.vertical and width or height) or self.tick_length
     if self.vertical then
       for i, tick in ipairs(self.ticks) do
-        tick:SetWidth(length)
+        tick:SetWidth(self.positionBars[i] and self.positionBars[i].positionActive and nativeLength or length)
       end
     else
       for i, tick in ipairs(self.ticks) do
-        tick:SetHeight(length)
+        tick:SetHeight(self.positionBars[i] and self.positionBars[i].positionActive and nativeLength or length)
       end
     end
   end,
@@ -482,6 +794,7 @@ local funcs = {
 }
 
 local function modify(parent, region, parentData, data, first)
+  onRelease(region)
   region:SetParent(parent)
   region.orientation = parent.effectiveOrientation
   region.inverse_direction = parentData.inverse
@@ -503,16 +816,12 @@ local function modify(parent, region, parentData, data, first)
   region.progressData = {}
   for i, tick_placement in ipairs(data.tick_placements) do
     local value = tonumber(tick_placement)
-    if region.tick_placement_mode == "ValueOffset" then
-      local progressSource = Private.AddProgressSourceMetaData(parentData, data.progressSources[i] or {-2, ""})
-      if value and progressSource then
-        tinsert(region.tick_placements, value)
-        tinsert(region.progressSources, progressSource or {})
-      end
-    else
-      if value then
-        tinsert(region.tick_placements, value)
-      end
+    if value then
+      -- Keep sources available when conditions switch into either source mode.
+      local progressSource = Private.AddProgressSourceMetaData(parentData,
+        data.progressSources and data.progressSources[i] or {-2, ""})
+      tinsert(region.tick_placements, value)
+      tinsert(region.progressSources, progressSource or {})
     end
 
     if region.ticks[i] == nil then
@@ -560,6 +869,8 @@ local function modify(parent, region, parentData, data, first)
 
   region:UpdateTickPlacement()
   region:UpdateTickSize()
+  region:UpdateVisible()
+  region:Show()
 
   parent.subRegionEvents:AddSubscriber("UpdateProgress", region)
   parent.subRegionEvents:AddSubscriber("OrientationChanged", region)
