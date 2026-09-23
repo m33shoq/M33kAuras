@@ -2499,6 +2499,10 @@ function Private.Convert(data, newType)
     Private.regions[id] = nil
   end
 
+  -- Radial progress-texture orientations are not supported by progress bars.
+  if newType == "aurabar" and not Private.orientation_types[data.orientation] then
+    data.orientation = Private.regionTypes.aurabar.default.orientation
+  end
   data.regionType = newType;
 
   -- Clean up sub regions
