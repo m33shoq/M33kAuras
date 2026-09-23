@@ -128,7 +128,13 @@ T.expect(item(root,"Paste Group Settings")~=nil,"normal/dynamic group settings p
 
 root=open("B");local menu=f.nativeMenu
 options.SortDisplayButtons()
-T.expect(menu.closed,"provider mutation closes the active display button menu")
+T.expect(not menu.closed,"rebuilding the provider keeps the display button menu open")
+f.private.loaded.B=true
+options.RequestAuraListRefresh();f:flush()
+T.expect(not menu.closed,"load-condition refresh keeps the menu open when an aura changes sections")
+exported=nil
+item(root,"Export..."):Pick()
+T.expect(exported=="B" and menu.closed,"menu actions retain their target after load-condition refresh")
 root=open("B");menu=f.nativeMenu
 options.ScrollBox:GetScript("OnHide")(options.ScrollBox)
 T.expect(menu.closed,"hiding the list closes its display button menu")

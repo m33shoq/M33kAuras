@@ -481,7 +481,6 @@ function OptionsPrivate.RefreshAuraList(filter)
   if OptionsPrivate.IsAuraListBusy() then frame.needsSort = true; return end
   refreshing = true
   local ok = xpcall(function()
-    OptionsPrivate.CloseDisplayButtonMenu()
     model:Sync(M33kAurasSaved.displays, OptionsPrivate.Private.loaded, filter)
     local provider = CreateTreeDataProvider()
     companionSections(frame, provider)
