@@ -32,10 +32,13 @@ local old=options.InitializeDisplayEntry
 entry.callbacks=nil
 options.InitializeDisplayEntry=function(self) self.callbacks={};error("injected initialization failure") end
 local released=fixture.released
-local initialized=pcall(options.BindAuraListRow,container,options.auraListNodes[entry.uid])
+local initialized,result=pcall(options.BindAuraListRow,container,options.auraListNodes[entry.uid])
 options.InitializeDisplayEntry=old
-T.expect(not initialized and not entry.row and not container.widget and fixture.released==released+1,
+T.expect(initialized and result==nil and not entry.row and not container.widget and fixture.released==released+1,
   "failed initialization releases the acquired row and unlinks its entry")
+T.expect(#fixture.errors==1 and fixture.errors[1]:find("injected initialization failure",1,true),
+  "initialization failures reach the error handler")
+wipe(fixture.errors)
 options.BindAuraListRow(container,options.auraListNodes[entry.uid])
 T.expect(container.widget and entry.row==container.widget,"the same container recovers on its next bind")
 options.ReleaseAuraListRow(container)

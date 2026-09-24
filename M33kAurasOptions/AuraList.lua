@@ -388,7 +388,7 @@ function OptionsPrivate.BindAuraListRow(container, node)
   widget = widget or AceGUI:Create(item.entry and "M33kAurasDisplayButton" or item.kind)
   container.widget, container.owned = widget, not item.widget
   widget.auraListContainer = container
-  local ok, err = pcall(function()
+  local ok = xpcall(function()
     if item.entry then
       widget.entry = item.entry
       item.entry.row = widget
@@ -407,10 +407,9 @@ function OptionsPrivate.BindAuraListRow(container, node)
     widget.frame:ClearAllPoints()
     widget.frame:SetAllPoints(container)
     widget.frame:Show()
-  end)
+  end, geterrorhandler())
   if not ok then
     OptionsPrivate.ReleaseAuraListRow(container)
-    error(err, 0)
   end
 end
 

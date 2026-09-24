@@ -12,15 +12,14 @@ function Thumbnail.Release(self)
   self.hasThumbnail, self.thumbnail, self.thumbnailType = false, nil, nil
   self.thumbnailOptions, self.thumbnailDesaturated = nil, nil
   if not thumbnail then return end
-  local ok, err = pcall(function()
+  local ok = xpcall(function()
     if desaturated and thumbnail.icon then thumbnail.icon:SetDesaturated(false) end
     option.releaseThumbnail(thumbnail)
-  end)
+  end, geterrorhandler())
   if not ok then
     -- The region owns its internal pool. We can hide its failed resource and
     -- finish releasing the row, but cannot safely return it to that pool.
     thumbnail:Hide()
-    geterrorhandler()(err)
   end
 end
 

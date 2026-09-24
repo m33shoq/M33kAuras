@@ -32,8 +32,17 @@ for _,kind in ipairs({"M33kAurasDisplayButton","M33kAurasPendingInstallButton","
   T.expect(row.thumbnail==thumbnail and (kind=="M33kAurasDisplayButton" or thumbnail.desaturated),kind.." acquires its own thumbnail")
   local errors=#f.errors
   failRelease=true
+  local releaseStack
+  local getHandler=geterrorhandler
+  _G.geterrorhandler=function()
+    local report=getHandler()
+    return function(err) releaseStack=debugstack(2);report(err) end
+  end
   local released=pcall(options.ReleaseAuraListRow,container)
+  _G.geterrorhandler=getHandler
   T.expect(released and #f.errors==errors+1,kind.." reports a release failure without aborting row cleanup")
+  T.expect(releaseStack and releaseStack:find("in function 'error'",1,true),
+    kind.." reports release errors before their original stack unwinds")
   T.expect(not row.data and not row.thumbnail and not row.callbacks and not row.frame:GetScript("OnEnter"),kind.." clears old aura references after failed thumbnail release")
   T.expect(not container.widget and not row.frame:IsShown() and not thumbnail:IsShown(),kind.." hides and detaches the failed binding")
   failRelease=false
@@ -48,8 +57,9 @@ for _,kind in ipairs({"M33kAurasDisplayButton","M33kAurasPendingInstallButton","
   options.ReleaseAuraListRow(container)
   T.expect(releases==countBefore+1 and #f.errors==errors+1,kind.." returns the resource to the owner that acquired it")
   f.private.regionOptions.icon={acquireThumbnail=function() error("injected acquire failure") end}
+  local acquireErrors=#f.errors
   local acquired,message=pcall(options.BindAuraListRow,container,node)
-  T.expect(not acquired and tostring(message):find("injected acquire failure",1,true) and not container.widget,
+  T.expect(acquired and message==nil and #f.errors==acquireErrors+1 and tostring(f.errors[acquireErrors+1]):find("injected acquire failure",1,true) and not container.widget,
     kind.." failed acquisition clears its binding and preserves the error")
   f.private.regionOptions.icon=original
   options.BindAuraListRow(container,node)
@@ -88,8 +98,9 @@ f.private.RegisterRegionOptions("registered",function() end,"icon","Registered",
   function() created=created+1;resource=CreateFrame("Frame");return resource end,
   function() if fail then error("injected registered modify failure") end end)
 local registered=f.private.regionOptions.registered
+local modifyErrors=#f.errors
 local ok,message=pcall(registered.acquireThumbnail,UIParent,{})
-T.expect(not ok and tostring(message):find("injected registered modify failure",1,true),"registered thumbnail modification errors propagate")
+T.expect(ok and message==nil and #f.errors==modifyErrors+1 and tostring(f.errors[modifyErrors+1]):find("injected registered modify failure",1,true),"registered thumbnail modification errors report once")
 T.expect(active==0 and not resource:IsShown(),"failed registered acquisition returns the hidden resource to its pool")
 fail=false
 local recovered=registered.acquireThumbnail(UIParent,{})

@@ -1,8 +1,15 @@
 -- UI lifecycle doubles for the real aura-list controller and AceGUI rows.
 local stubs = require("wow_stubs")
 local M = {}
+local luaXpcall = xpcall
 function M.install(T)
   stubs.install()
+  -- WoW supports xpcall arguments; stock Lua 5.1 does not.
+  _G.xpcall=function(fn, handler, ...)
+    local args, count={...}, select("#", ...)
+    return luaXpcall(function() return fn(unpack(args, 1, count)) end, handler)
+  end
+  _G.debugstack=function(level) return debug.traceback("", (level or 1) + 1) end
   local fixture = {frames = {}, timers = {}, errors = {}, previews = {}, acquired = 0, released = 0}
   local function noop() end
   local frameMethods = {}

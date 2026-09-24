@@ -23,7 +23,8 @@ T.expect(paused==2 and resumed==2 and a:GetVisibility()==0 and options.GetDispla
 local fake=private.FakeStatesFor
 private.FakeStatesFor=function() error("injected preview failure") end
 local ok,err=pcall(root.callbacks.OnViewClick)
-T.expect(not ok and tostring(err):find("injected preview failure",1,true),"preview failures remain visible to the caller")
+T.expect(ok and #f.errors==1 and tostring(f.errors[1]):find("injected preview failure",1,true),"preview failures report once")
+wipe(f.errors)
 T.expect(paused==resumed,"preview failure resumes suspended groups")
 T.expect(a:GetVisibility()==0,"a failed preview does not claim that its aura is visible")
 private.FakeStatesFor=fake
@@ -32,7 +33,8 @@ T.expect(f.previews.A==true,"retrying after a preview failure actually displays 
 f:flush()
 private.FakeStatesFor=function() error("injected hide failure") end
 ok,err=pcall(root.callbacks.OnViewClick)
-T.expect(not ok and a:GetVisibility()==2,"a failed hide retains the previous preview state")
+T.expect(ok and #f.errors==1 and a:GetVisibility()==2 and tostring(f.errors[1]):find("injected hide failure",1,true),"a failed hide reports its error and retains the previous preview state")
+wipe(f.errors)
 private.FakeStatesFor=fake
 root.callbacks.OnViewClick()
 T.expect(f.previews.A==false,"retrying after a hide failure actually hides the failed aura")
@@ -52,8 +54,9 @@ options.DuplicateAura=function(data,...)
   return duplicate(data,...)
 end
 ok,err=pcall(root.callbacks.OnDuplicateClick)
-T.expect(not ok and tostring(err):find("injected duplicate failure",1,true),"duplication failures remain visible to the caller")
+T.expect(ok and #f.errors==1 and tostring(f.errors[1]):find("injected duplicate failure",1,true),"duplication failures report once")
 T.expect(paused==resumed,"failed leaf duplication resumes suspended groups")
+wipe(f.errors)
 options.DuplicateAura=duplicate
 
 _G.IsShiftKeyDown=function() return true end
@@ -122,8 +125,9 @@ for _,case in ipairs({{"loadedButton","Loaded"},{"unloadedButton","Unloaded"}}) 
   leaf.PriorityShow=function() error("injected header failure") end
   local beforePaused,beforeResumed=paused,resumed
   local success,message=pcall(header.view:GetScript("OnClick"))
-  T.expect(not success and tostring(message):find("injected header failure",1,true),case[1].." propagates preview errors")
+  T.expect(success and #f.errors==1 and tostring(f.errors[1]):find("injected header failure",1,true),case[1].." reports preview errors once")
   T.expect(paused-beforePaused==resumed-beforeResumed,case[1].." resumes groups after a preview error")
+  wipe(f.errors)
   leaf.PriorityShow=show
 end
 T.expect(#f.errors==0,"action checks report no unexpected UI callback errors")

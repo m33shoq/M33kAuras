@@ -812,14 +812,14 @@ function OptionsPrivate.CreateFrame()
       if loadedButton.view.visibility == 2 then
         for _, child in ipairs(loadedButton.childButtons) do
           if child:IsLoaded() then
-            child:PriorityHide(2)
+            if child:PriorityHide(2) == false then return end
           end
         end
         loadedButton:PriorityHide(2)
       else
         for _, child in ipairs(loadedButton.childButtons) do
           if child:IsLoaded() then
-            child:PriorityShow(2)
+            if child:PriorityShow(2) == false then return end
           end
         end
         loadedButton:PriorityShow(2)
@@ -877,12 +877,12 @@ function OptionsPrivate.CreateFrame()
     OptionsPrivate.WithSuspendedDynamicGroups(function()
       if unloadedButton.view.visibility == 2 then
         for _, child in ipairs(unloadedButton.childButtons) do
-          child:PriorityHide(2)
+          if child:PriorityHide(2) == false then return end
         end
         unloadedButton:PriorityHide(2)
       else
         for _, child in ipairs(unloadedButton.childButtons) do
-          child:PriorityShow(2)
+          if child:PriorityShow(2) == false then return end
         end
         unloadedButton:PriorityShow(2)
       end

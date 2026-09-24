@@ -272,9 +272,9 @@ end
 -- Resume dynamic groups even if a synchronous action fails.
 function OptionsPrivate.WithSuspendedDynamicGroups(action)
   local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
-  local ok, err = pcall(action)
+  local ok = xpcall(action, geterrorhandler())
   OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
-  if not ok then error(err, 0) end
+  return ok
 end
 
 function OptionsPrivate.InitializeDisplayEntry(self)
@@ -495,12 +495,12 @@ function OptionsPrivate.InitializeDisplayEntry(self)
       OptionsPrivate.WithSuspendedDynamicGroups(function()
         if(self.view.visibility == 2) then
           for child in OptionsPrivate.Private.TraverseAllChildren(self.data) do
-            OptionsPrivate.GetDisplayEntry(child.id):PriorityHide(2);
+            if OptionsPrivate.GetDisplayEntry(child.id):PriorityHide(2) == false then return end
           end
           self:PriorityHide(2)
         else
           for child in OptionsPrivate.Private.TraverseAllChildren(self.data) do
-            OptionsPrivate.GetDisplayEntry(child.id):PriorityShow(2);
+            if OptionsPrivate.GetDisplayEntry(child.id):PriorityShow(2) == false then return end
           end
           self:PriorityShow(2)
         end
@@ -623,11 +623,11 @@ end
 local function ApplyVisibility(self, visibility)
     local previous = self.view.visibility
     self.view.visibility = visibility
-    local ok, err = pcall(self.SyncVisibility, self)
+    local ok = xpcall(self.SyncVisibility, geterrorhandler(), self)
     if not ok then
       -- A failed region update must remain retryable on the next click.
       self.view.visibility = previous
-      error(err, 0)
+      return false
     end
     self:UpdateViewTexture()
 end
@@ -637,7 +637,7 @@ entryMethods.PriorityShow = function(self, priority)
       return;
     end
     if(priority >= self.view.visibility and self.view.visibility ~= priority) then
-      ApplyVisibility(self, priority)
+      if ApplyVisibility(self, priority) == false then return false end
     end
     local region = OptionsPrivate.Private.EnsureRegion(self.data.id)
     if region and region.ClickToPick then
@@ -650,6 +650,6 @@ entryMethods.PriorityHide = function(self, priority)
       return;
     end
     if(priority >= self.view.visibility and self.view.visibility ~= 0) then
-      ApplyVisibility(self, 0)
+      return ApplyVisibility(self, 0)
     end
 end
