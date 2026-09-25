@@ -276,11 +276,14 @@ function TableToString(inTable, forChat)
     compressed = compressedTablesCache[serialized].compressed
     compressedTablesCache[serialized].lastAccess = time()
   else
-    compressed = LibDeflate:CompressDeflate(serialized, configForDeflate)
-    compressedTablesCache[serialized] = {
-      compressed = compressed,
-      lastAccess = time(),
-    }
+    local ok
+    ok, compressed = pcall(C_EncodingUtil.CompressString, serialized, Enum.CompressionMethod.Deflate)
+    if ok then
+      compressedTablesCache[serialized] = {
+        compressed = compressed,
+        lastAccess = time(),
+      }
+    end
   end
   -- remove cache items after 5 minutes
   for k, v in pairs(compressedTablesCache) do
@@ -327,8 +330,9 @@ function StringToTable(inString, fromChat)
 
   local decompressed
   if encodeVersion > 0 then
-    decompressed = LibDeflate:DecompressDeflate(decoded)
-    if not(decompressed) then
+    local ok
+    ok, decompressed = pcall(C_EncodingUtil.DecompressString, decoded, Enum.CompressionMethod.Deflate)
+    if not(ok) then
       return L["Error decompressing"]
     end
   else
