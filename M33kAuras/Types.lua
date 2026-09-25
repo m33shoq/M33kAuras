@@ -4297,14 +4297,9 @@ Private.data_stub = {
   triggers = {
     {
       trigger = {
-        type = "aura2",
-        names = {},
-        event = "Health",
-        subeventPrefix = "SPELL",
-        subeventSuffix = "_CAST_START",
-        spellIds = {},
-        unit = "player",
-        debuffType = "HELPFUL",
+        type = "unit",
+        event = "Conditions",
+        use_alwaystrue = true,
       },
       untrigger = {},
     },

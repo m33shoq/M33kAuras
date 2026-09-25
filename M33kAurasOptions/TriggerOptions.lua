@@ -134,7 +134,9 @@ local function AddOptions(allOptions, data)
           {
             trigger =
             {
-              type = "aura2"
+              type = "unit",
+              event = "Conditions",
+              use_alwaystrue = true,
             },
             untrigger = {
             }
