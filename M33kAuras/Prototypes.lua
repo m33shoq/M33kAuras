@@ -11430,14 +11430,14 @@ end
 Private.category_event_prototype.addons = Private.category_event_prototype.addons or {}
 
 
+
 Private.dynamic_texts = {
   ["p"] = {
     get = function(state)
       if not state then return nil end
       if state.progressType == "static" then
         return state.value or nil
-      end
-      if state.progressType == "timed" then
+      elseif state.progressType == "timed" then
         if state.paused then
           return state.remaining and state.remaining >= 0 and state.remaining or nil
         end
@@ -11447,9 +11447,8 @@ Private.dynamic_texts = {
         end
         local remaining = state.expirationTime - GetTime();
         return remaining >= 0 and remaining or nil
-      end
-      if state.progressType == "durationObject" and M33kAuras.IsDurationObject(state.durationObject) then
-        return state.durationObject:GetRemainingDuration() or nil
+      elseif state.progressType == "durationObject" and M33kAuras.IsDurationObject(state.durationObject) then
+        return state.durationObject, "remaining"
       end
     end,
     func = function(remaining, state, progressPrecision)
@@ -11458,37 +11457,23 @@ Private.dynamic_texts = {
       if not state or (state.progressType ~= "timed" and state.progressType ~= "durationObject") then
         return remaining
       end
-      if type(remaining) ~= "number" then
+
+      local formatter = Private.GetTimeFormatter(0, progressPrecision, 60)
+      if M33kAuras.IsDurationObject(remaining) then
+        return M33kAuras.GetDurationObjectValue(remaining, "remaining", formatter)
+      elseif type(remaining) ~= "number" then
         return ""
       end
+
       if issecretvalue(remaining) then
-        -- todo when secret duration formatting is a thing
         return string.format("%.1f", remaining)
       end
 
-      local remainingStr = "";
       if remaining == math.huge then
-        remainingStr = " ";
-      elseif remaining > 60 then
-        remainingStr = string.format("%i:", math.floor(remaining / 60));
-        remaining = remaining % 60;
-        remainingStr = remainingStr..string.format("%02i", remaining);
-      elseif remaining > 0 then
-        if progressPrecision == 4 and remaining <= 3 then
-          remainingStr = remainingStr..string.format("%.1f", remaining);
-        elseif progressPrecision == 5 and remaining <= 3 then
-          remainingStr = remainingStr..string.format("%.2f", remaining);
-        elseif progressPrecision == 6 and remaining <= 3 then
-          remainingStr = remainingStr..string.format("%.3f", remaining);
-        elseif (progressPrecision == 4 or progressPrecision == 5 or progressPrecision == 6) and remaining > 3 then
-          remainingStr = remainingStr..string.format("%d", remaining);
-        else
-          remainingStr = remainingStr..string.format("%.".. progressPrecision .."f", remaining);
-        end
-      else
-        remainingStr = " ";
+        return " "
       end
-      return remainingStr
+
+      return formatter:FormatNumber(remaining)
     end
   },
   ["t"] = {
@@ -11496,51 +11481,36 @@ Private.dynamic_texts = {
       if not state then return "" end
       if state.progressType == "static" then
         return state.total, false
-      end
-      if state.progressType == "timed" then
+      elseif state.progressType == "timed" then
         if not state.duration then
           return nil
         end
         return state.duration, true
-      end
-      if state.progressType == "durationObject" and M33kAuras.IsDurationObject(state.durationObject) then
-        return state.durationObject:GetTotalDuration() or nil, true
+      elseif state.progressType == "durationObject" and M33kAuras.IsDurationObject(state.durationObject) then
+        return state.durationObject, "total"
       end
     end,
     func = function(duration, state, totalPrecision)
+      totalPrecision = totalPrecision or 1
+
       if not state or (state.progressType ~= "timed" and state.progressType ~= "durationObject") then
         return duration
       end
-      if type(duration) ~= "number" then
+
+      local formatter = Private.GetTimeFormatter(0, totalPrecision, 60)
+      if M33kAuras.IsDurationObject(duration) then
+        return M33kAuras.GetDurationObjectValue(duration, "total", formatter)
+      elseif type(duration) ~= "number" then
         return ""
       end
       if issecretvalue(duration) then
-        -- todo when secret duration formatting is a thing
         return string.format("%.1f", duration)
       end
-      local durationStr = "";
+
       if math.abs(duration) == math.huge or tostring(duration) == "nan" then
-        durationStr = " ";
-      elseif duration > 60 then
-        durationStr = string.format("%i:", math.floor(duration / 60));
-        duration = duration % 60;
-        durationStr = durationStr..string.format("%02i", duration);
-      elseif duration > 0 then
-        if totalPrecision == 4 and duration <= 3 then
-          durationStr = durationStr..string.format("%.1f", duration);
-        elseif totalPrecision == 5 and duration <= 3 then
-          durationStr = durationStr..string.format("%.2f", duration);
-        elseif totalPrecision == 6 and duration <= 3 then
-          durationStr = durationStr..string.format("%.3f", duration);
-        elseif (totalPrecision == 4 or totalPrecision == 5 or totalPrecision == 6) and duration > 3 then
-          durationStr = durationStr..string.format("%d", duration);
-        else
-          durationStr = durationStr..string.format("%."..totalPrecision.."f", duration);
-        end
-      else
-        durationStr = " ";
+        return " ";
       end
-      return durationStr
+      return formatter:FormatNumber(duration)
     end
   },
   ["n"] = {

@@ -186,21 +186,270 @@ timeFormatter.GetMaxInterval = function(self)
 end
 
 local AbbreviateNumbers = AbbreviateNumbers
+local Up = Enum.NumericRuleFormatRounding.Up
+local Down = Enum.NumericRuleFormatRounding.Down
+
+-- Smallest positive IEEE-754 double.
+-- Lets the 0 breakpoint apply only to exactly 0.
+local MIN_POSITIVE = 2 ^ -1074
+
+local timeFormatterCache = {}
+
+local SECOND = SECOND_ONELETTER_ABBR:gsub(" ", "")
+local MINUTE = MINUTE_ONELETTER_ABBR:gsub(" ", "")
+local HOUR = HOUR_ONELETTER_ABBR:gsub(" ", "")
+local DAY = DAY_ONELETTER_ABBR:gsub(" ", "")
+
+local SECONDS_PER_MIN = SECONDS_PER_MINUTE or 60
+local SECONDS_PER_HOUR = SECONDS_PER_HOUR or 3600
+local SECONDS_PER_DAY = SECONDS_PER_DAY or 86400
+
+local function GetTimeFormatter(type, precision, threshold)
+  if threshold >= 60 then
+    threshold = 59.999
+  end
+  local key = tostring(type) .. "_" .. tostring(precision) .. "_" .. tostring(threshold)
+  if timeFormatterCache[key] then
+    return timeFormatterCache[key]
+  end
+
+  local formatter
+
+  if type == 1 then -- Old Blizzard
+    formatter = C_StringUtil.CreateNumericRuleFormatter()
+    local breakpoints = {
+      {
+          threshold = 0,
+          format = "",
+      },
+    }
+
+    if threshold > 0 then
+        tinsert(breakpoints, {
+            threshold = MIN_POSITIVE,
+            format = "%." .. precision .. "f",
+        })
+
+        tinsert(breakpoints, {
+            threshold = threshold,
+            format = SECOND,
+        })
+    else
+        tinsert(breakpoints, {
+            threshold = MIN_POSITIVE,
+            format = SECOND,
+        })
+    end
+
+    tinsert(breakpoints, {
+        threshold = SECONDS_PER_MIN * 1.5,
+        format = MINUTE,
+        components = {
+            {
+                div = SECONDS_PER_MIN,
+                step = 1,
+                rounding = Up,
+            },
+        },
+    })
+
+    tinsert(breakpoints, {
+        threshold = SECONDS_PER_HOUR * 1.5,
+        format = HOUR,
+        components = {
+            {
+                div = SECONDS_PER_HOUR,
+                step = 1,
+                rounding = Up,
+            },
+        },
+    })
+
+    tinsert(breakpoints, {
+        threshold = SECONDS_PER_DAY * 1.5,
+        format = DAY,
+        components = {
+            {
+                div = SECONDS_PER_DAY,
+                step = 1,
+                rounding = Up,
+            },
+        },
+    })
+
+    formatter:SetBreakpoints(breakpoints)
+  elseif type == 2 then -- Modern Blizzard
+    formatter = C_StringUtil.CreateNumericRuleFormatter()
+    local breakpoints = {
+        {
+            threshold = 0,
+            format = "",
+        },
+    }
+
+    if threshold > 0 then
+        breakpoints[#breakpoints + 1] = {
+            threshold = MIN_POSITIVE,
+            format = "%." .. precision .. "f",
+        }
+
+        if threshold < SECONDS_PER_MIN then
+            breakpoints[#breakpoints + 1] = {
+                threshold = threshold,
+                step = 1,
+                rounding = Up,
+                format = SECOND,
+            }
+        end
+    else
+        breakpoints[#breakpoints + 1] = {
+            threshold = MIN_POSITIVE,
+            step = 1,
+            rounding = Up,
+            format = SECOND,
+        }
+    end
+
+    -- Up to 5 minutes, approximate the old two-unit formatter.
+    breakpoints[#breakpoints + 1] = {
+        threshold = SECONDS_PER_MIN,
+        step = 1,
+        rounding = Up,
+        format = MINUTE .. SECOND,
+        components = {
+            {
+                div = SECONDS_PER_MIN,
+                step = 1,
+                rounding = Down,
+            },
+            {
+                mod = SECONDS_PER_MIN,
+                step = 1,
+                rounding = Down,
+            },
+        },
+    }
+
+    -- Above 5 minutes, only keep the largest useful unit.
+    breakpoints[#breakpoints + 1] = {
+        threshold = 5 * SECONDS_PER_MIN,
+        step = 1,
+        rounding = Up,
+        format = MINUTE,
+        components = {
+            {
+                div = SECONDS_PER_MIN,
+                step = 1,
+                rounding = Down,
+            },
+        },
+    }
+
+    breakpoints[#breakpoints + 1] = {
+        threshold = SECONDS_PER_HOUR,
+        step = 1,
+        rounding = Up,
+        format = HOUR,
+        components = {
+            {
+                div = SECONDS_PER_HOUR,
+                step = 1,
+                rounding = Down,
+            },
+        },
+    }
+
+    breakpoints[#breakpoints + 1] = {
+        threshold = SECONDS_PER_DAY,
+        step = 1,
+        rounding = Up,
+        format = DAY,
+        components = {
+            {
+                div = SECONDS_PER_DAY,
+                step = 1,
+                rounding = Down,
+            },
+        },
+    }
+    formatter:SetBreakpoints(breakpoints)
+  else -- 99 or 0, Fixed built-in formatter
+    formatter = C_StringUtil.CreateNumericRuleFormatter()
+    local breakpoints = {
+      {
+        threshold = 0,
+        format = "",
+      },
+    }
+
+    if threshold > 0 then
+      tinsert(breakpoints, {
+        threshold = MIN_POSITIVE,
+        format = "%." .. precision .. "f",
+      })
+      tinsert(breakpoints, {
+        threshold = threshold,
+        format = "%d",
+      })
+    else
+      tinsert(breakpoints, {
+        threshold = MIN_POSITIVE,
+        format = "%d",
+      })
+    end
+
+    tinsert(breakpoints, {
+      threshold = MIN_POSITIVE,
+      format = "%." .. precision .. "f",
+    })
+    tinsert(breakpoints, {
+      threshold = 60.001,
+      format = "%i:%02i",
+      components = {
+        {
+          div = 60,
+        },
+        {
+          mod = 60,
+        },
+      }
+    })
+
+    formatter:SetBreakpoints(breakpoints)
+  end
+
+  timeFormatterCache[key] = formatter
+  return formatter
+end
+
+Private.GetTimeFormatter = GetTimeFormatter
 
 local simpleFormatters = {
-  AbbreviateNumbers = function(value)
+  AbbreviateNumbers = function(value, state, trigger, durationType)
+    if M33kAuras.IsDurationObject(value) then
+      value = M33kAuras.GetDurationObjectValue(value, durationType)
+    end
     if type(value) == "string" and not issecretvalue(value) then value = tonumber(value) end
-    return (type(value) == "number") and AbbreviateNumbers(value) or value
+    return (type(value) == "number") and AbbreviateNumbers(value) or type(value) == "string" and value or nil
   end,
-  AbbreviateLargeNumbers = function(value)
+  AbbreviateLargeNumbers = function(value, state, trigger, durationType)
+    if M33kAuras.IsDurationObject(value) then
+      value = M33kAuras.GetDurationObjectValue(value, durationType)
+    end
     if type(value) == "string" and not issecretvalue(value) then value = tonumber(value) end
-    return (type(value) == "number") and AbbreviateLargeNumbers(value) or value
+    return (type(value) == "number") and AbbreviateLargeNumbers(value) or type(value) == "string" and value or nil
   end,
-  BreakUpLargeNumbers = function(value)
+  BreakUpLargeNumbers = function(value, state, trigger, durationType)
+    if M33kAuras.IsDurationObject(value) then
+      value = M33kAuras.GetDurationObjectValue(value, durationType)
+    end
     if type(value) == "string" and not issecretvalue(value) then value = tonumber(value) end
-    return (type(value) == "number") and BreakUpLargeNumbers(value) or value
+    return (type(value) == "number") and BreakUpLargeNumbers(value) or type(value) == "string" and value or nil
   end,
-  floor = function(value)
+  floor = function(value, state, trigger, durationType)
+    if M33kAuras.IsDurationObject(value) then
+      value = M33kAuras.GetDurationObjectValue(value, durationType)
+    end
     if issecretvalue(value) then
       if type(value) == "number" then
         return string.format("%d", value)
@@ -213,7 +462,10 @@ local simpleFormatters = {
     if type(value) == "string" then value = tonumber(value) end
     return (type(value) == "number") and floor(value) or value
   end,
-  ceil = function(value)
+  ceil = function(value, state, trigger, durationType)
+    if M33kAuras.IsDurationObject(value) then
+      value = M33kAuras.GetDurationObjectValue(value, durationType)
+    end
     if issecretvalue(value) then
       if type(value) == "number" then
         return string.format("%d", value)
@@ -226,7 +478,10 @@ local simpleFormatters = {
     if type(value) == "string" then value = tonumber(value) end
     return (type(value) == "number") and ceil(value) or value
   end,
-  round = function(value)
+  round = function(value, state, trigger, durationType)
+    if M33kAuras.IsDurationObject(value) then
+      value = M33kAuras.GetDurationObjectValue(value, durationType)
+    end
     if issecretvalue(value) then
       if type(value) == "number" then
         return string.format("%d", value)
@@ -269,7 +524,7 @@ local simpleFormatters = {
       return fmt:gsub(" ", ""):format(time)
     end,
     -- Modern Blizzard
-    [2] = M33kAuras.IsRetail() and function(value)
+    [2] = function(value)
       if issecretvalue(value) then
         if  type(value) == "number" then
           return string.format("%d", value)
@@ -502,8 +757,13 @@ Private.format_types = {
       end
 
       local formatter
+      local numberFormatter = GetTimeFormatter(format, precision, threshold)
+
       if threshold == 0 then
-        formatter = function(value, state, trigger)
+        formatter = function(value, state, trigger, durationType)
+          if M33kAuras.IsDurationObject(value) then
+            return M33kAuras.GetDurationObjectValue(value, durationType, numberFormatter)
+          end
           if type(value) ~= 'number' then
             return ""
           end
@@ -530,7 +790,10 @@ Private.format_types = {
         end
       else
         local formatString = "%." .. precision .. "f"
-        formatter = function(value, state, trigger)
+        formatter = function(value, state, trigger, durationType)
+          if M33kAuras.IsDurationObject(value) then
+            return M33kAuras.GetDurationObjectValue(value, durationType, numberFormatter)
+          end
           if type(value) ~= 'number' then
             return ""
           end
@@ -563,11 +826,11 @@ Private.format_types = {
         -- Special case %p and %t. Since due to how the formatting
         -- work previously, the time formatter only formats %p and %t
         -- if the progress type is timed!
-        return function(value, state, trigger)
+        return function(value, state, trigger, durationType)
           if not state or (state.progressType ~= "timed" and state.progressType ~= "durationObject") then
             return value
           end
-          return formatter(value, state, trigger)
+          return formatter(value, state, trigger, durationType)
         end, next(timePointProperty) ~= nil
       else
         return formatter, next(timePointProperty) ~= nil
@@ -596,8 +859,8 @@ Private.format_types = {
       local format = get(symbol .. "_money_format", "AbbreviateNumbers")
       local precision = get(symbol .. "_money_precision", 3)
 
-      return function(value)
-        if type(value) ~= "number" then
+      return function(value, state, trigger, durationType)
+        if type(value) ~= "number" or issecretvalue(value) or M33kAuras.IsDurationObject(value) then
           return ""
         end
         local gold = floor(value / 1e4)

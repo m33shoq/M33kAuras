@@ -5311,7 +5311,7 @@ function Private.RunCustomTextFunc(region, customFunc)
 end
 
 local function ReplaceValuePlaceHolders(textStr, region, customCache, state, formatter, trigger)
-  local value;
+  local value, formatMethodName;
 
   local customIndexSubStr = textStr:match("^c(%d*)$")
 
@@ -5346,11 +5346,11 @@ local function ReplaceValuePlaceHolders(textStr, region, customCache, state, for
     if (not variable) then
       return nil;
     end
-    value = variable.get(state)
+    value, formatMethodName = variable.get(state)
     if formatter then
-      value = formatter(value, state, trigger)
+      value = formatter(value, state, trigger, formatMethodName)
     elseif variable.func then
-      value = variable.func(value)
+      value = variable.func(value, state)
     end
   end
 

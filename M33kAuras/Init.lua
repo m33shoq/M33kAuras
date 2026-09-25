@@ -745,14 +745,6 @@ function M33kAuras.PurgeSecrets(tbl)
   end
 end
 
-function M33kAuras.IsDurationObject(duration)
-  local t = type(duration)
-  if t == "userdata" and duration.GetRemainingDuration then
-    return true
-  end
-  return false
-end
-
 function M33KAURAS_WIPE_ALL_SETTINGS()
   StaticPopupDialogs["M33KAURAS_WIPE_ALL_SETTINGS"] = {
       text = "Are you sure you want to wipe all settings for M33kAuras and disable settings migration from WeakAuras?\n\nThis action cannot be undone.",
