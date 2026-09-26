@@ -322,6 +322,10 @@ local function ensureExtraSpinners(region, count)
 end
 
 local function convertToProgress(rprogress, additionalProgress, adjustMin, totalWidth, inverse, clamp)
+  if hasanysecretvalues(additionalProgress.min, additionalProgress.max,
+                        additionalProgress.width, additionalProgress.offset) then
+    return 0, 0;
+  end
   local startProgress = 0;
   local endProgress = 0;
 
@@ -671,6 +675,12 @@ local funcs = {
     end
   end,
   SetAdditionalProgress = function(self, additionalProgress, currentMin, currentMax, inverse)
+    -- Texture overlays require arithmetic; only status bars can render secret progress.
+    if hasanysecretvalues(self.progress, currentMin, currentMax)
+      or (self.progressType == "static" and hasanysecretvalues(self.value, self.total))
+    then
+      additionalProgress, currentMin, currentMax = nil, nil, nil;
+    end
     self:ApplyAdditionalProgress(additionalProgress, currentMin, currentMax, inverse)
   end,
   ReapplyAdditionalProgress = function(self)

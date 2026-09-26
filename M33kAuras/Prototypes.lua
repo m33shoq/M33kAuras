@@ -3330,6 +3330,404 @@ Private.event_prototypes = {
     },
     automaticrequired = true
   },
+  ["Health"] = {
+    type = "unit",
+    includePets = "true",
+    progressType = "static",
+    progressConditions = false,
+    events = function(trigger)
+      local result = {}
+      AddUnitEventForEvents(result, trigger.unit, "UNIT_HEALTH")
+      AddUnitEventForEvents(result, trigger.unit, "UNIT_MAXHEALTH")
+      AddUnitEventForEvents(result, trigger.unit, "UNIT_NAME_UPDATE")
+      if trigger.use_showAbsorb then
+        AddUnitEventForEvents(result, trigger.unit, "UNIT_ABSORB_AMOUNT_CHANGED")
+      end
+      if trigger.use_showHealAbsorb then
+        AddUnitEventForEvents(result, trigger.unit, "UNIT_HEAL_ABSORB_AMOUNT_CHANGED")
+      end
+      if trigger.use_ignoreDead or trigger.use_ignoreDisconnected then
+        AddUnitEventForEvents(result, trigger.unit, "UNIT_FLAGS")
+      end
+      return result
+    end,
+    internal_events = function(trigger)
+      local result = {}
+      local includePets = trigger.use_includePets == true and trigger.includePets or nil
+      AddUnitChangeInternalEvents(trigger.unit, result, includePets)
+      if includePets ~= "PetsOnly" then
+        AddUnitRoleChangeInternalEvents(trigger.unit, result)
+      end
+      AddUnitSpecChangeInternalEvents(trigger.unit, result)
+      return result
+    end,
+    loadFunc = function(trigger)
+      local includePets = trigger.use_includePets == true and trigger.includePets or nil
+      AddWatchedUnits(trigger.unit, includePets)
+    end,
+    force_events = unitHelperFunctions.UnitChangedForceEventsWithPets,
+    name = L["Health"],
+    init = function(trigger)
+      trigger.unit = trigger.unit or "player"
+      local ret = ([=[
+        unit = string.lower(unit)
+        local name, realm = M33kAuras.UnitNameWithRealm(unit)
+        local smart = %s
+      ]=]):format(trigger.unit == "group" and "true" or "false")
+      return ret .. unitHelperFunctions.SpecificUnitCheck(trigger)
+    end,
+    statesParameter = "unit",
+    args = {
+      {
+        name = "secretValuesDescription",
+        type = "description",
+        display = "|cffffd200" .. L["Secret values"] .. "|r",
+        text = L["Health is always secret, so advanced computations are not possible."],
+      },
+      {
+        name = "unit",
+        required = true,
+        display = L["Unit"],
+        type = "unit",
+        init = "arg",
+        values = "actual_unit_types_cast",
+        desc = Private.actual_unit_types_cast_tooltip,
+        test = "true",
+        store = true,
+      },
+      -- Health amounts are display sources only, including on imported triggers
+      -- that still have numeric filters saved from older versions.
+      {
+        name = "health",
+        display = L["Health"],
+        type = "number",
+        init = "UnitHealth(unit, false)",
+        store = true,
+        hidden = true,
+        test = "true",
+        progressSource = true,
+        progressTotal = "maxhealth",
+        useAdditionalProgress = true,
+        formatter = "BigNumber",
+      },
+      {
+        name = "value",
+        hidden = true,
+        init = "health",
+        store = true,
+        test = "true",
+      },
+      {
+        name = "total",
+        hidden = true,
+        init = "UnitHealthMax(unit)",
+        store = true,
+        test = "true",
+      },
+      {
+        name = "progressType",
+        hidden = true,
+        init = "'static'",
+        store = true,
+        test = "true",
+      },
+      {
+        name = "percenthealth",
+        display = L["Health (%)"],
+        type = "number",
+        init = "UnitHealthPercent(unit, false, CurveConstants.ScaleTo100)",
+        store = true,
+        hidden = true,
+        test = "true",
+        progressSource = true,
+        progressTotal = "percenthealthtotal",
+        formatter = "Number",
+      },
+      {
+        name = "percenthealthtotal",
+        hidden = true,
+        init = "100",
+        store = true,
+        test = "true",
+      },
+      {
+        name = "deficit",
+        display = L["Health Deficit"],
+        type = "number",
+        init = "UnitHealthMissing(unit, false)",
+        store = true,
+        hidden = true,
+        test = "true",
+        progressSource = true,
+        progressTotal = "total",
+        formatter = "BigNumber",
+      },
+      {
+        name = "maxhealth",
+        display = L["Max Health"],
+        type = "number",
+        init = "total",
+        store = true,
+        hidden = true,
+        test = "true",
+        progressSource = true,
+        formatter = "BigNumber",
+      },
+      {
+        type = "header",
+        name = "absorbAndHealingHeader",
+        display = L["Absorb and Healing"],
+      },
+      {
+        name = "showAbsorb",
+        display = L["Fetch Absorb"],
+        type = "toggle",
+        test = "true",
+        reloadOptions = true,
+      },
+      {
+        name = "absorbMode",
+        display = L["Absorb Overlay"],
+        type = "select",
+        test = "true",
+        values = "absorb_modes",
+        required = true,
+        enable = function(trigger) return trigger.use_showAbsorb end,
+      },
+      {
+        name = "absorb",
+        display = L["Absorb"],
+        type = "number",
+        init = "UnitGetTotalAbsorbs(unit)",
+        store = true,
+        hidden = true,
+        test = "true",
+        progressSource = true,
+        progressTotal = "total",
+        formatter = "BigNumber",
+        enable = function(trigger) return trigger.use_showAbsorb end,
+      },
+      {
+        name = "showHealAbsorb",
+        display = L["Fetch Heal Absorb"],
+        type = "toggle",
+        test = "true",
+        reloadOptions = true,
+      },
+      {
+        name = "absorbHealMode",
+        display = L["Absorb Heal Overlay"],
+        type = "select",
+        test = "true",
+        values = "absorb_modes",
+        required = true,
+        enable = function(trigger) return trigger.use_showHealAbsorb end,
+      },
+      {
+        name = "healabsorb",
+        display = L["Heal Absorb"],
+        type = "number",
+        init = "UnitGetTotalHealAbsorbs(unit)",
+        store = true,
+        hidden = true,
+        test = "true",
+        progressSource = true,
+        progressTotal = "total",
+        formatter = "BigNumber",
+        enable = function(trigger) return trigger.use_showHealAbsorb end,
+      },
+      {
+        name = "name",
+        display = L["Unit Name"],
+        type = "string",
+        store = true,
+        hidden = true,
+        test = "true",
+      },
+      {
+        name = "realm",
+        display = L["Realm"],
+        type = "string",
+        store = true,
+        hidden = true,
+        test = "true",
+      },
+      {
+        type = "header",
+        name = "unitCharacteristicsHeader",
+        display = L["Unit Characteristics"],
+      },
+      {
+        name = "namerealm",
+        display = L["Unit Name/Realm"],
+        type = "string",
+        multiline = true,
+        preamble = "local nameRealmChecker = Private.ExecEnv.ParseNameCheck(%q)",
+        test = "nameRealmChecker:Check(name, realm)",
+        conditionType = "string",
+        conditionPreamble = function(input)
+          return Private.ExecEnv.ParseNameCheck(input)
+        end,
+        conditionTest = function(state, needle, op, preamble)
+          return preamble:Check(state.name, state.realm)
+        end,
+        operator_types = "none",
+        desc = constants.nameRealmFilterDesc,
+      },
+      {
+        name = "npcId",
+        display = L["Npc ID"],
+        type = "string",
+        multiline = true,
+        store = true,
+        init = "not issecretvalue(UnitGUID(unit)) and select(6, strsplit('-', UnitGUID(unit) or ''))",
+        conditionType = "string",
+        preamble = "local npcIdChecker = Private.ExecEnv.ParseStringCheck(%q)",
+        test = "npcIdChecker:Check(npcId)",
+        conditionPreamble = function(input)
+          return Private.ExecEnv.ParseStringCheck(input)
+        end,
+        conditionTest = function(state, needle, op, preamble)
+          return preamble:Check(state.npcId)
+        end,
+        operator_types = "none",
+        desc = L["Supports multiple entries, separated by commas. Prefix with '-' for negation."],
+      },
+      {
+        name = "class",
+        display = L["Class"],
+        type = "select",
+        init = "select(2, UnitClass(unit))",
+        values = "class_types",
+        store = true,
+        conditionType = "select",
+      },
+      {
+        name = "specId",
+        display = L["Specialization"],
+        type = "multiselect",
+        init = "M33kAuras.SpecForUnit(unit)",
+        values = "spec_types_all",
+        store = true,
+        conditionType = "select",
+        enable = function(trigger)
+          return M33kAuras.IsCataOrMistsOrRetail() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
+        end,
+        desc = L["Requires syncing the specialization via LibSpecialization."],
+        sorted = true,
+        sortOrder = Private.specs_sorted,
+      },
+      {
+        name = "role",
+        display = L["Assigned Role"],
+        type = "select",
+        init = "UnitGroupRolesAssigned(unit)",
+        values = "role_types",
+        store = true,
+        conditionType = "select",
+        enable = function(trigger)
+          return trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
+        end,
+      },
+      {
+        name = "raid_role",
+        display = L["Raid Role"],
+        type = "select",
+        init = "M33kAuras.UnitRaidRole(unit)",
+        values = "raid_role_types",
+        store = true,
+        conditionType = "select",
+        enable = function(trigger)
+          return (M33kAuras.IsClassicOrCataOrMists() or M33kAuras.IsForever()) and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
+        end,
+      },
+      {
+        type = "header",
+        name = "miscellaneousHeader",
+        display = L["Miscellaneous"],
+        enable = function(trigger)
+          return trigger.unit == "nameplate" or trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
+        end,
+      },
+      {
+        name = "includePets",
+        display = L["Include Pets"],
+        type = "select",
+        values = "include_pets_types",
+        width = M33kAuras.normalWidth,
+        test = "true",
+        enable = function(trigger)
+          return trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
+        end,
+      },
+      {
+        name = "ignoreSelf",
+        display = L["Ignore Self"],
+        type = "toggle",
+        width = M33kAuras.doubleWidth,
+        enable = function(trigger)
+          return trigger.unit == "nameplate" or trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
+        end,
+        init = "not UnitIsUnit(\"player\", unit)",
+      },
+      {
+        name = "ignoreDead",
+        display = L["Ignore Dead"],
+        type = "toggle",
+        width = M33kAuras.doubleWidth,
+        enable = function(trigger)
+          return trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
+        end,
+        init = "not UnitIsDeadOrGhost(unit)",
+      },
+      {
+        name = "ignoreDisconnected",
+        display = L["Ignore Disconnected"],
+        type = "toggle",
+        width = M33kAuras.doubleWidth,
+        enable = function(trigger)
+          return trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
+        end,
+        init = "UnitIsConnected(unit)",
+      },
+      {
+        name = "nameplateType",
+        display = L["Hostility"],
+        type = "select",
+        init = "M33kAuras.GetPlayerReaction(unit)",
+        values = "hostility_types",
+        store = true,
+        conditionType = "select",
+      },
+      {
+        hidden = true,
+        test = "M33kAuras.UnitExistsFixed(unit, smart) and specificUnitCheck",
+      },
+    },
+    overlayFuncs = {
+      {
+        name = L["Absorb"],
+        func = function(trigger, state)
+          if trigger.absorbMode == "OVERLAY_FROM_START" then
+            return 0, state.absorb
+          end
+          return "forward", state.absorb
+        end,
+        enable = function(trigger) return trigger.use_showAbsorb end,
+      },
+      {
+        name = L["Heal Absorb"],
+        func = function(trigger, state)
+          if trigger.absorbHealMode == "OVERLAY_FROM_START" then
+            return 0, state.healabsorb
+          end
+          return "forward", state.healabsorb
+        end,
+        enable = function(trigger) return trigger.use_showHealAbsorb end,
+      },
+    },
+    automaticrequired = true,
+  },
   ["Power"] = {
     type = "unit",
     progressType = "static",

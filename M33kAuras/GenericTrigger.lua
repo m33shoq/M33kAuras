@@ -42,8 +42,9 @@ Returns the a tooltip for the additional properties.
 GetProgressSources(data, triggernum, outValues)
   Fills outValues with the potential progress sources
 
-GetTriggerConditions(data, triggernum)
-Returns potential conditions that this trigger provides.
+GetTriggerConditions(data, triggernum, includeProgressSources)
+Returns potential conditions that this trigger provides. The optional flag includes
+display-only progress sources that cannot be used as conditions.
 ]]--
 if not M33kAuras.IsLibsOK() then return end
 ---@type string
@@ -4801,7 +4802,7 @@ function GenericTrigger.GetAdditionalProperties(data, triggernum)
 end
 
 function GenericTrigger.GetProgressSources(data, triggernum, values)
-  local variables = GenericTrigger.GetTriggerConditions(data, triggernum)
+  local variables = GenericTrigger.GetTriggerConditions(data, triggernum, true)
   if (type(variables) == "table") then
     for var, varData in pairs(variables) do
       if (type(varData) == "table") then
@@ -4953,7 +4954,7 @@ function Private.GetTsuConditionVariablesExpanded(id, triggernum)
   end
 end
 
-function GenericTrigger.GetTriggerConditions(data, triggernum)
+function GenericTrigger.GetTriggerConditions(data, triggernum, includeProgressSources)
   local trigger = data.triggers[triggernum].trigger
 
   local prototype = GenericTrigger.GetPrototype(trigger)
@@ -4972,7 +4973,8 @@ function GenericTrigger.GetTriggerConditions(data, triggernum)
       result.paused = commonConditions.paused
     end
 
-    if progressType == "static" then
+    -- Secret progress can be displayed without exposing amount comparisons.
+    if progressType == "static" and (prototype.progressConditions ~= false or includeProgressSources) then
       result.value = commonConditions.value;
       result.total = commonConditions.total;
     end
@@ -4990,7 +4992,8 @@ function GenericTrigger.GetTriggerConditions(data, triggernum)
     end
 
     for _, v in pairs(prototype.args) do
-      if (v.conditionType and v.name and v.display) then
+      local variableType = v.conditionType or (includeProgressSources and v.progressSource and v.type)
+      if (variableType and v.name and v.display) then
         local enable = true;
         if (v.enable ~= nil) then
           if type(v.enable) == "function" then
@@ -5003,7 +5006,7 @@ function GenericTrigger.GetTriggerConditions(data, triggernum)
         if (enable) then
           result[v.name] = {
             display = v.display,
-            type = v.conditionType,
+            type = variableType,
           }
           if (result[v.name].type == "select" or result[v.name].type == "unit") then
             if (v.conditionValues) then

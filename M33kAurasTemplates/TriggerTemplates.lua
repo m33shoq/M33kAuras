@@ -356,9 +356,8 @@ local function createHealthTrigger(triggers, position, item)
       event = "Health",
       unit = "player",
       use_unit = true,
-      use_absorbMode = true,
       use_showAbsorb = true,
-      use_showIncomingHeal = true,
+      absorbMode = "OVERLAY_FROM_END",
     },
   };
 end

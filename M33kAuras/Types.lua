@@ -4098,7 +4098,6 @@ Private.bool_types = {
 Private.absorb_modes = {
   OVERLAY_FROM_START = L["Attach to Start"],
   OVERLAY_FROM_END = L["Attach to End"],
-  OVERLAY_FROM_END_REVERSE = L["Attach to End, backwards"]
 }
 
 ---@type table
