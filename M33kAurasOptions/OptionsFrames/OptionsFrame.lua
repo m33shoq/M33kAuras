@@ -808,23 +808,23 @@ function OptionsPrivate.CreateFrame()
   loadedButton:SetExpandDescription(L["Expand all loaded displays"])
   loadedButton:SetCollapseDescription(L["Collapse all loaded displays"])
   loadedButton:SetViewClick(function()
-    OptionsPrivate.WithSuspendedDynamicGroups(function()
-      if loadedButton.view.visibility == 2 then
-        for _, child in ipairs(loadedButton.childButtons) do
-          if child:IsLoaded() then
-            if child:PriorityHide(2) == false then return end
-          end
+    local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
+    if loadedButton.view.visibility == 2 then
+      for _, child in ipairs(loadedButton.childButtons) do
+        if child:IsLoaded() then
+          child:PriorityHide(2)
         end
-        loadedButton:PriorityHide(2)
-      else
-        for _, child in ipairs(loadedButton.childButtons) do
-          if child:IsLoaded() then
-            if child:PriorityShow(2) == false then return end
-          end
-        end
-        loadedButton:PriorityShow(2)
       end
-    end)
+      loadedButton:PriorityHide(2)
+    else
+      for _, child in ipairs(loadedButton.childButtons) do
+        if child:IsLoaded() then
+          child:PriorityShow(2)
+        end
+      end
+      loadedButton:PriorityShow(2)
+    end
+    OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
   end)
   loadedButton.RecheckVisibility = function(self)
     local none, all = true, #self.childButtons > 0
@@ -874,19 +874,19 @@ function OptionsPrivate.CreateFrame()
   unloadedButton:SetExpandDescription(L["Expand all non-loaded displays"])
   unloadedButton:SetCollapseDescription(L["Collapse all non-loaded displays"])
   unloadedButton:SetViewClick(function()
-    OptionsPrivate.WithSuspendedDynamicGroups(function()
-      if unloadedButton.view.visibility == 2 then
-        for _, child in ipairs(unloadedButton.childButtons) do
-          if child:PriorityHide(2) == false then return end
-        end
-        unloadedButton:PriorityHide(2)
-      else
-        for _, child in ipairs(unloadedButton.childButtons) do
-          if child:PriorityShow(2) == false then return end
-        end
-        unloadedButton:PriorityShow(2)
+    local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
+    if unloadedButton.view.visibility == 2 then
+      for _, child in ipairs(unloadedButton.childButtons) do
+        child:PriorityHide(2)
       end
-    end)
+      unloadedButton:PriorityHide(2)
+    else
+      for _, child in ipairs(unloadedButton.childButtons) do
+        child:PriorityShow(2)
+      end
+      unloadedButton:PriorityShow(2)
+    end
+    OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
   end)
   unloadedButton.RecheckVisibility = function(self)
     local none, all = true, #self.childButtons > 0

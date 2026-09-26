@@ -269,14 +269,6 @@ local function IsParentRecursive(needle, parent)
   end
 end
 
--- Resume dynamic groups even if a synchronous action fails.
-function OptionsPrivate.WithSuspendedDynamicGroups(action)
-  local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
-  local ok = xpcall(action, geterrorhandler())
-  OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
-  return ok
-end
-
 function OptionsPrivate.InitializeDisplayEntry(self)
     self.callbacks = {};
 
@@ -442,22 +434,22 @@ function OptionsPrivate.InitializeDisplayEntry(self)
         local mapping = {}
         -- Create every parent group before duplicating its leaf auras.
         DuplicateGroups(self.data, newGroup, mapping)
-        OptionsPrivate.WithSuspendedDynamicGroups(function()
-          DuplicateAuras(self.data, newGroup, mapping)
+        local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
+        DuplicateAuras(self.data, newGroup, mapping)
 
-          local button = OptionsPrivate.GetDisplayEntry(newGroup.id)
+        local button = OptionsPrivate.GetDisplayEntry(newGroup.id)
+        button.callbacks.UpdateExpandButton()
+        button:UpdateParentWarning()
+
+        for old, new in pairs(mapping) do
+          local button = OptionsPrivate.GetDisplayEntry(new.id)
           button.callbacks.UpdateExpandButton()
           button:UpdateParentWarning()
+        end
 
-          for old, new in pairs(mapping) do
-            local button = OptionsPrivate.GetDisplayEntry(new.id)
-            button.callbacks.UpdateExpandButton()
-            button:UpdateParentWarning()
-          end
-
-          OptionsPrivate.SortDisplayButtons(nil, true)
-          OptionsPrivate.PickAndEditDisplay(newGroup.id)
-        end)
+        OptionsPrivate.SortDisplayButtons(nil, true)
+        OptionsPrivate.PickAndEditDisplay(newGroup.id)
+        OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
       else
         local new = OptionsPrivate.DuplicateAura(self.data)
         OptionsPrivate.SortDisplayButtons(nil, true)
@@ -492,20 +484,20 @@ function OptionsPrivate.InitializeDisplayEntry(self)
     end
 
     function self.callbacks.OnViewClick()
-      OptionsPrivate.WithSuspendedDynamicGroups(function()
-        if(self.view.visibility == 2) then
-          for child in OptionsPrivate.Private.TraverseAllChildren(self.data) do
-            if OptionsPrivate.GetDisplayEntry(child.id):PriorityHide(2) == false then return end
-          end
-          self:PriorityHide(2)
-        else
-          for child in OptionsPrivate.Private.TraverseAllChildren(self.data) do
-            if OptionsPrivate.GetDisplayEntry(child.id):PriorityShow(2) == false then return end
-          end
-          self:PriorityShow(2)
+      local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
+      if(self.view.visibility == 2) then
+        for child in OptionsPrivate.Private.TraverseAllChildren(self.data) do
+          OptionsPrivate.GetDisplayEntry(child.id):PriorityHide(2)
         end
-        self:RecheckParentVisibility()
-      end)
+        self:PriorityHide(2)
+      else
+        for child in OptionsPrivate.Private.TraverseAllChildren(self.data) do
+          OptionsPrivate.GetDisplayEntry(child.id):PriorityShow(2)
+        end
+        self:PriorityShow(2)
+      end
+      self:RecheckParentVisibility()
+      OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
     end
 
     function self.callbacks.OnRenameClick()
@@ -620,24 +612,14 @@ entryMethods.SyncVisibility = function(self)
     end
 end
 
-local function ApplyVisibility(self, visibility)
-    local previous = self.view.visibility
-    self.view.visibility = visibility
-    local ok = xpcall(self.SyncVisibility, geterrorhandler(), self)
-    if not ok then
-      -- A failed region update must remain retryable on the next click.
-      self.view.visibility = previous
-      return false
-    end
-    self:UpdateViewTexture()
-end
-
 entryMethods.PriorityShow = function(self, priority)
     if (not M33kAuras.IsOptionsOpen()) then
       return;
     end
     if(priority >= self.view.visibility and self.view.visibility ~= priority) then
-      if ApplyVisibility(self, priority) == false then return false end
+      self.view.visibility = priority
+      self:SyncVisibility()
+      self:UpdateViewTexture()
     end
     local region = OptionsPrivate.Private.EnsureRegion(self.data.id)
     if region and region.ClickToPick then
@@ -650,6 +632,8 @@ entryMethods.PriorityHide = function(self, priority)
       return;
     end
     if(priority >= self.view.visibility and self.view.visibility ~= 0) then
-      return ApplyVisibility(self, 0)
+      self.view.visibility = 0
+      self:SyncVisibility()
+      self:UpdateViewTexture()
     end
 end

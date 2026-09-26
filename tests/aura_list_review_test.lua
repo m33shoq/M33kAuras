@@ -24,23 +24,19 @@ local ok=pcall(rename,"Rename",a.uid,"A","Renamed")
 T.expect(ok and model.byUID[a.uid]==entry,"rename notification tolerates a lookup that already updated the ID index")
 fixture:flush()
 
-T.section("Pooled row failure recovery")
+T.section("Pooled row ownership")
 options.RevealDisplay("Renamed")
 fixture.view:Render(1000)
 local container=CreateFrame("Frame")
-local old=options.InitializeDisplayEntry
-entry.callbacks=nil
-options.InitializeDisplayEntry=function(self) self.callbacks={};error("injected initialization failure") end
-local released=fixture.released
-local initialized,result=pcall(options.BindAuraListRow,container,options.auraListNodes[entry.uid])
-options.InitializeDisplayEntry=old
-T.expect(initialized and result==nil and not entry.row and not container.widget and fixture.released==released+1,
-  "failed initialization releases the acquired row and unlinks its entry")
-T.expect(#fixture.errors==1 and fixture.errors[1]:find("injected initialization failure",1,true),
-  "initialization failures reach the error handler")
-wipe(fixture.errors)
 options.BindAuraListRow(container,options.auraListNodes[entry.uid])
-T.expect(container.widget and entry.row==container.widget,"the same container recovers on its next bind")
+local row=container.widget
+T.expect(row and entry.row==row,"binding a row links it to its entry")
+local released=fixture.released
+options.ReleaseAuraListRow(container)
+T.expect(not entry.row and not container.widget and fixture.released==released+1,
+  "releasing a row unlinks its entry and container")
+options.BindAuraListRow(container,options.auraListNodes[entry.uid])
+T.expect(container.widget==row and entry.row==row,"the same container reuses its row on the next bind")
 options.ReleaseAuraListRow(container)
 
 T.section("Batch selection")

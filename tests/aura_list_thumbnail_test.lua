@@ -10,7 +10,7 @@ local entry=options.GetDisplayEntry("A")
 f.private.StringToTable=function() return {d={id="Preview",uid="preview",regionType="icon",load={}}} end
 for _,kind in ipairs({"M33kAurasDisplayButton","M33kAurasPendingInstallButton","M33kAurasPendingUpdateButton"}) do
   local container=CreateFrame("Frame")
-  local thumbnail,releases,failRelease=nil,0,false
+  local thumbnail,releases=nil,0
   f.private.regionOptions.icon={
     acquireThumbnail=function()
       thumbnail=CreateFrame("Frame")
@@ -19,7 +19,6 @@ for _,kind in ipairs({"M33kAurasDisplayButton","M33kAurasPendingInstallButton","
     end,
     releaseThumbnail=function(frame)
       releases=releases+1
-      if failRelease then error("injected thumbnail release failure") end
       frame:Hide()
     end,
   }
@@ -30,24 +29,12 @@ for _,kind in ipairs({"M33kAurasDisplayButton","M33kAurasPendingInstallButton","
   options.BindAuraListRow(container,node)
   local row=container.widget
   T.expect(row.thumbnail==thumbnail and (kind=="M33kAurasDisplayButton" or thumbnail.desaturated),kind.." acquires its own thumbnail")
-  local errors=#f.errors
-  failRelease=true
-  local releaseStack
-  local getHandler=geterrorhandler
-  _G.geterrorhandler=function()
-    local report=getHandler()
-    return function(err) releaseStack=debugstack(2);report(err) end
-  end
-  local released=pcall(options.ReleaseAuraListRow,container)
-  _G.geterrorhandler=getHandler
-  T.expect(released and #f.errors==errors+1,kind.." reports a release failure without aborting row cleanup")
-  T.expect(releaseStack and releaseStack:find("in function 'error'",1,true),
-    kind.." reports release errors before their original stack unwinds")
-  T.expect(not row.data and not row.thumbnail and not row.callbacks and not row.frame:GetScript("OnEnter"),kind.." clears old aura references after failed thumbnail release")
-  T.expect(not container.widget and not row.frame:IsShown() and not thumbnail:IsShown(),kind.." hides and detaches the failed binding")
-  failRelease=false
+  options.ReleaseAuraListRow(container)
+  T.expect(releases==1,kind.." releases its thumbnail once")
+  T.expect(not row.data and not row.thumbnail and not row.callbacks and not row.frame:GetScript("OnEnter"),kind.." clears old aura references on release")
+  T.expect(not container.widget and not row.frame:IsShown() and not thumbnail:IsShown(),kind.." hides and detaches the released binding")
   options.BindAuraListRow(container,node)
-  T.expect(container.widget==row and row.thumbnail~=nil,kind.." can reuse the row after a release error")
+  T.expect(container.widget==row and row.thumbnail~=nil,kind.." reuses the released row")
   options.ReleaseAuraListRow(container)
   T.expect(kind=="M33kAurasDisplayButton" or thumbnail.desaturated==false,kind.." restores Companion desaturation on successful release")
   local original=f.private.regionOptions.icon
@@ -55,16 +42,10 @@ for _,kind in ipairs({"M33kAurasDisplayButton","M33kAurasPendingInstallButton","
   local countBefore=releases
   f.private.regionOptions.icon={releaseThumbnail=function() error("wrong thumbnail owner") end}
   options.ReleaseAuraListRow(container)
-  T.expect(releases==countBefore+1 and #f.errors==errors+1,kind.." returns the resource to the owner that acquired it")
-  f.private.regionOptions.icon={acquireThumbnail=function() error("injected acquire failure") end}
-  local acquireErrors=#f.errors
-  local acquired,message=pcall(options.BindAuraListRow,container,node)
-  T.expect(acquired and message==nil and #f.errors==acquireErrors+1 and tostring(f.errors[acquireErrors+1]):find("injected acquire failure",1,true) and not container.widget,
-    kind.." failed acquisition clears its binding and preserves the error")
+  T.expect(releases==countBefore+1,kind.." returns the resource to the owner that acquired it")
   f.private.regionOptions.icon=original
   options.BindAuraListRow(container,node)
   row=container.widget
-  T.expect(row.thumbnail and row.data,kind.." recovers on the next acquisition")
   local otherReleased=0
   f.private.regionOptions.other={acquireThumbnail=function() return CreateFrame("Frame") end,
     releaseThumbnail=function(frame) otherReleased=otherReleased+1;frame:Hide() end}
@@ -79,8 +60,7 @@ for _,kind in ipairs({"M33kAurasDisplayButton","M33kAurasPendingInstallButton","
   options.ReleaseAuraListRow(container)
   T.expect(releases==count,kind.." repeated release never returns a thumbnail twice")
 end
--- Exercise the real registration wrapper: it owns resources until acquisition
--- returns them to a row, including errors inside modifyThumbnail.
+-- Exercise thumbnail pooling through the real registration function.
 local file=assert(io.open(T.repoRoot.."/M33kAuras/M33kAuras.lua"))
 local source=file:read("*a");file:close()
 local first=assert(source:find("function Private.RegisterRegionOptions(",1,true))
@@ -92,19 +72,22 @@ _G.CreateObjectPool=function(create)
     Release=function(_,frame) active=active-1;free[#free+1]=frame end}
 end
 assert(loadstring("local Private,regionOptions=...;"..source:sub(first,last-1)))(f.private,f.private.regionOptions)
-local fail=true
 local resource
+local data={}
 f.private.RegisterRegionOptions("registered",function() end,"icon","Registered",
   function() created=created+1;resource=CreateFrame("Frame");return resource end,
-  function() if fail then error("injected registered modify failure") end end)
+  function(parent,thumbnail,aura) thumbnail.parent=parent;thumbnail.data=aura end)
 local registered=f.private.regionOptions.registered
-local modifyErrors=#f.errors
-local ok,message=pcall(registered.acquireThumbnail,UIParent,{})
-T.expect(ok and message==nil and #f.errors==modifyErrors+1 and tostring(f.errors[modifyErrors+1]):find("injected registered modify failure",1,true),"registered thumbnail modification errors report once")
-T.expect(active==0 and not resource:IsShown(),"failed registered acquisition returns the hidden resource to its pool")
-fail=false
-local recovered=registered.acquireThumbnail(UIParent,{})
-T.expect(recovered==resource and created==1 and active==1,"registered acquisition reuses its resource after failure")
-registered.releaseThumbnail(recovered)
+local acquired=registered.acquireThumbnail(UIParent,data)
+T.expect(acquired==resource and resource:IsShown() and resource.parent==UIParent and resource.data==data,
+  "registered acquisition shows and configures its thumbnail")
+registered.releaseThumbnail(acquired)
+T.expect(active==0 and not resource:IsShown(),"registered release hides the thumbnail and returns it to the pool")
+data={}
+local reused=registered.acquireThumbnail(UIParent,data)
+T.expect(reused==resource and created==1 and active==1 and reused:IsShown() and reused.data==data,
+  "registered acquisition reuses and updates its pooled thumbnail")
+registered.releaseThumbnail(reused)
 T.expect(active==0,"registered thumbnail release balances its acquisition")
+T.expect(#f.errors==0,"thumbnail lifecycle checks report no UI errors")
 T.finish()

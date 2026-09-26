@@ -388,29 +388,24 @@ function OptionsPrivate.BindAuraListRow(container, node)
   widget = widget or AceGUI:Create(item.entry and "M33kAurasDisplayButton" or item.kind)
   container.widget, container.owned = widget, not item.widget
   widget.auraListContainer = container
-  local ok = xpcall(function()
-    if item.entry then
-      widget.entry = item.entry
-      item.entry.row = widget
-      widget:SetData(item.entry.data)
-      widget:Initialize()
-      widget:AcquireThumbnail()
-    elseif item.kind then
-      widget:Initialize(item.id, item.companion)
-      if item.companion.logo then widget:SetLogo(item.companion.logo) end
-      if item.companion.refreshLogo then widget:SetRefreshLogo(item.companion.refreshLogo) end
-      for id in pairs(item.auras or {}) do widget:MarkLinkedAura(id) end
-      for id in pairs(item.children or {}) do widget:MarkLinkedChildren(id) end
-      widget:AcquireThumbnail()
-    end
-    widget.frame:SetParent(container)
-    widget.frame:ClearAllPoints()
-    widget.frame:SetAllPoints(container)
-    widget.frame:Show()
-  end, geterrorhandler())
-  if not ok then
-    OptionsPrivate.ReleaseAuraListRow(container)
+  if item.entry then
+    widget.entry = item.entry
+    item.entry.row = widget
+    widget:SetData(item.entry.data)
+    widget:Initialize()
+    widget:AcquireThumbnail()
+  elseif item.kind then
+    widget:Initialize(item.id, item.companion)
+    if item.companion.logo then widget:SetLogo(item.companion.logo) end
+    if item.companion.refreshLogo then widget:SetRefreshLogo(item.companion.refreshLogo) end
+    for id in pairs(item.auras or {}) do widget:MarkLinkedAura(id) end
+    for id in pairs(item.children or {}) do widget:MarkLinkedChildren(id) end
+    widget:AcquireThumbnail()
   end
+  widget.frame:SetParent(container)
+  widget.frame:ClearAllPoints()
+  widget.frame:SetAllPoints(container)
+  widget.frame:Show()
 end
 
 function OptionsPrivate.CreateAuraList(parent)
@@ -479,49 +474,46 @@ function OptionsPrivate.RefreshAuraList(filter)
   if not frame or refreshing then return end
   if OptionsPrivate.IsAuraListBusy() then frame.needsSort = true; return end
   refreshing = true
-  local ok = xpcall(function()
-    model:Sync(M33kAurasSaved.displays, OptionsPrivate.Private.loaded, filter)
-    local provider = CreateTreeDataProvider()
-    companionSections(frame, provider)
-    local loaded = provider:Insert({widget = frame.loadedButton, height = 20})
-    local unloaded = provider:Insert({widget = frame.unloadedButton, height = 20})
-    loaded:SetCollapsed(not frame.loadedButton:GetExpanded())
-    unloaded:SetCollapsed(not frame.unloadedButton:GetExpanded())
-    wipe(frame.loadedButton.childButtons)
-    wipe(frame.unloadedButton.childButtons)
-    local nodes = {}
-    local function insert(entry, parent)
-      if not model:Includes(entry) then return end
-      local node = parent:Insert({entry = entry, height = 32})
-      nodes[entry.uid] = node
-      node:SetCollapsed(not entry:GetExpanded())
-      for _, child in ipairs(entry.children) do insert(child, node) end
-    end
-    local function collectLeaves(entry, children)
-      if not entry.data.controlledChildren then children[#children + 1] = entry end
-      for _, child in ipairs(entry.children) do collectLeaves(child, children) end
-    end
-    for _, root in ipairs(model.roots) do
-      local isLoaded = root.section == "loaded"
-      collectLeaves(root, isLoaded and frame.loadedButton.childButtons or frame.unloadedButton.childButtons)
-      insert(root, isLoaded and loaded or unloaded)
-    end
-    OptionsPrivate.auraListNodes = nodes
-    local box = OptionsPrivate.ScrollBox
-    local offset = box:GetDerivedScrollOffset()
-    box:GetScrollInterpolator():Cancel()
-    box:SetDataProvider(provider, true)
-    -- Provider replacement can change the range. Restore a pixel offset, rather
-    -- than retaining an old percentage or an in-flight navigation animation.
-    if box:GetDerivedScrollRange() > 0 then
-      box:ScrollToOffset(offset, true)
-    else
-      box:SetScrollPercentage(0, true)
-    end
-    OptionsPrivate.RefreshAuraPreviews()
-  end, geterrorhandler())
+  model:Sync(M33kAurasSaved.displays, OptionsPrivate.Private.loaded, filter)
+  local provider = CreateTreeDataProvider()
+  companionSections(frame, provider)
+  local loaded = provider:Insert({widget = frame.loadedButton, height = 20})
+  local unloaded = provider:Insert({widget = frame.unloadedButton, height = 20})
+  loaded:SetCollapsed(not frame.loadedButton:GetExpanded())
+  unloaded:SetCollapsed(not frame.unloadedButton:GetExpanded())
+  wipe(frame.loadedButton.childButtons)
+  wipe(frame.unloadedButton.childButtons)
+  local nodes = {}
+  local function insert(entry, parent)
+    if not model:Includes(entry) then return end
+    local node = parent:Insert({entry = entry, height = 32})
+    nodes[entry.uid] = node
+    node:SetCollapsed(not entry:GetExpanded())
+    for _, child in ipairs(entry.children) do insert(child, node) end
+  end
+  local function collectLeaves(entry, children)
+    if not entry.data.controlledChildren then children[#children + 1] = entry end
+    for _, child in ipairs(entry.children) do collectLeaves(child, children) end
+  end
+  for _, root in ipairs(model.roots) do
+    local isLoaded = root.section == "loaded"
+    collectLeaves(root, isLoaded and frame.loadedButton.childButtons or frame.unloadedButton.childButtons)
+    insert(root, isLoaded and loaded or unloaded)
+  end
+  OptionsPrivate.auraListNodes = nodes
+  local box = OptionsPrivate.ScrollBox
+  local offset = box:GetDerivedScrollOffset()
+  box:GetScrollInterpolator():Cancel()
+  box:SetDataProvider(provider, true)
+  -- Provider replacement can change the range. Restore a pixel offset, rather
+  -- than retaining an old percentage or an in-flight navigation animation.
+  if box:GetDerivedScrollRange() > 0 then
+    box:ScrollToOffset(offset, true)
+  else
+    box:SetScrollPercentage(0, true)
+  end
+  OptionsPrivate.RefreshAuraPreviews()
   refreshing = nil
-  if not ok then return end
   if pendingReveal then
     local request = pendingReveal
     local entry = model.byUID[request.uid]

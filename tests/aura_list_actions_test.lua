@@ -17,28 +17,12 @@ private.ResumeAllDynamicGroups=function(token) assert(outstanding[token]);outsta
 root.callbacks.OnViewClick()
 T.expect(paused==1 and resumed==1 and a:GetVisibility()==2 and options.GetDisplayEntry("C"):GetVisibility()==2,
   "group preview activates every descendant and resumes dynamic groups")
+T.expect(f.previews.A==true,"group preview displays the aura")
 root.callbacks.OnViewClick()
 T.expect(paused==2 and resumed==2 and a:GetVisibility()==0 and options.GetDisplayEntry("C"):GetVisibility()==0,
   "group preview toggles every descendant off and resumes dynamic groups")
-local fake=private.FakeStatesFor
-private.FakeStatesFor=function() error("injected preview failure") end
-local ok,err=pcall(root.callbacks.OnViewClick)
-T.expect(ok and #f.errors==1 and tostring(f.errors[1]):find("injected preview failure",1,true),"preview failures report once")
-wipe(f.errors)
-T.expect(paused==resumed,"preview failure resumes suspended groups")
-T.expect(a:GetVisibility()==0,"a failed preview does not claim that its aura is visible")
-private.FakeStatesFor=fake
-root.callbacks.OnViewClick()
-T.expect(f.previews.A==true,"retrying after a preview failure actually displays the failed aura")
+T.expect(f.previews.A==false,"toggling group preview off hides the aura")
 f:flush()
-private.FakeStatesFor=function() error("injected hide failure") end
-ok,err=pcall(root.callbacks.OnViewClick)
-T.expect(ok and #f.errors==1 and a:GetVisibility()==2 and tostring(f.errors[1]):find("injected hide failure",1,true),"a failed hide reports its error and retains the previous preview state")
-wipe(f.errors)
-private.FakeStatesFor=fake
-root.callbacks.OnViewClick()
-T.expect(f.previews.A==false,"retrying after a hide failure actually hides the failed aura")
--- Reset counters to audit independent operations after an intentionally failed preview.
 paused,resumed=0,0
 root.callbacks.OnDuplicateClick()
 f:flush()
@@ -48,16 +32,6 @@ T.expect(copy and table.concat(copy.controlledChildren,",")=="A 2,Nested 2,B 2",
 T.expect(M33kAuras.GetData("C 2").parent=="Nested 2" and copy.uid~=root.uid and M33kAuras.GetData("C 2").uid~=M33kAuras.GetData("C").uid,
   "nested duplicates receive independent identities and parent links")
 T.expect(paused>0 and paused==resumed,"successful group duplication resumes dynamic groups")
-local duplicate=options.DuplicateAura
-options.DuplicateAura=function(data,...)
-  if not data.controlledChildren then error("injected duplicate failure") end
-  return duplicate(data,...)
-end
-ok,err=pcall(root.callbacks.OnDuplicateClick)
-T.expect(ok and #f.errors==1 and tostring(f.errors[1]):find("injected duplicate failure",1,true),"duplication failures report once")
-T.expect(paused==resumed,"failed leaf duplication resumes suspended groups")
-wipe(f.errors)
-options.DuplicateAura=duplicate
 
 _G.IsShiftKeyDown=function() return true end
 _G.GetCurrentRegion=function() return 1 end
@@ -115,20 +89,14 @@ for _,case in ipairs({{"loadedButton","Loaded"},{"unloadedButton","Unloaded"}}) 
   local header,leaf=f.frame[case[1]],options.GetDisplayEntry(case[2])
   for _,child in ipairs(header.childButtons) do child.view.visibility=0 end
   header:RecheckVisibility()
+  local beforePaused,beforeResumed=paused,resumed
   header.view:GetScript("OnClick")()
   f:flush()
   T.expect(leaf:GetVisibility()==2,case[1].." previews offscreen leaves through its real callback")
   header.view:GetScript("OnClick")()
   f:flush()
   T.expect(leaf:GetVisibility()==0,case[1].." hides explicit previews through its real callback")
-  local show=leaf.PriorityShow
-  leaf.PriorityShow=function() error("injected header failure") end
-  local beforePaused,beforeResumed=paused,resumed
-  local success,message=pcall(header.view:GetScript("OnClick"))
-  T.expect(success and #f.errors==1 and tostring(f.errors[1]):find("injected header failure",1,true),case[1].." reports preview errors once")
-  T.expect(paused-beforePaused==resumed-beforeResumed,case[1].." resumes groups after a preview error")
-  wipe(f.errors)
-  leaf.PriorityShow=show
+  T.expect(paused-beforePaused==2 and resumed-beforeResumed==2,case[1].." resumes groups after each preview toggle")
 end
 T.expect(#f.errors==0,"action checks report no unexpected UI callback errors")
 T.finish()

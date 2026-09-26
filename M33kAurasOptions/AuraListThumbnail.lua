@@ -1,8 +1,7 @@
 if not M33kAuras.IsLibsOK() then return end
 local _, OptionsPrivate = ...
 
--- Shared by aura and Companion rows. Thumbnail ownership ends before calling
--- region code, so an error cannot retain the old aura or release it twice.
+-- Shared by aura and Companion rows.
 local Thumbnail = {}
 OptionsPrivate.AuraListThumbnail = Thumbnail
 
@@ -12,15 +11,8 @@ function Thumbnail.Release(self)
   self.hasThumbnail, self.thumbnail, self.thumbnailType = false, nil, nil
   self.thumbnailOptions, self.thumbnailDesaturated = nil, nil
   if not thumbnail then return end
-  local ok = xpcall(function()
-    if desaturated and thumbnail.icon then thumbnail.icon:SetDesaturated(false) end
-    option.releaseThumbnail(thumbnail)
-  end, geterrorhandler())
-  if not ok then
-    -- The region owns its internal pool. We can hide its failed resource and
-    -- finish releasing the row, but cannot safely return it to that pool.
-    thumbnail:Hide()
-  end
+  if desaturated and thumbnail.icon then thumbnail.icon:SetDesaturated(false) end
+  option.releaseThumbnail(thumbnail)
 end
 
 function Thumbnail.Acquire(self, desaturate)
