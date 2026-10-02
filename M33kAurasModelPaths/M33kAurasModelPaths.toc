@@ -1,4 +1,4 @@
-## Interface: 120100
+## Interface: 120100, 16001
 ## Title: M33kAuras Model Paths (RG fork)
 ## Author: m33shoq
 ## Version: @project-version@
