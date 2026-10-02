@@ -104,19 +104,23 @@ T.expect(f.frame.filterInput:GetText()=="Aura 01" and options.auraListModel.filt
 T.expect(f.frame.pickedDisplay==created.id and #f.view.containers>0,"the created aura is selected without emptying the filtered list")
 options.SortDisplayButtons("")
 options.RevealDisplay(entry.data.id)
-entry:BeginRename();entry.row.renamebox:SetText("Offscreen committed")
+entry:BeginRename()
+local input=entry.renameInput
+input:SetText("Offscreen committed")
 f.view:Render(1000)
-local host=f.frames[#f.frames]
-T.expect(host:HasFocus() and host:GetText()=="Offscreen committed","rename input transfers to a persistent host when its row is released")
+T.expect(entry.renameInput==input and input:HasFocus() and input:GetText()=="Offscreen committed",
+  "rename input stays focused when its display button is released")
 local renamed
 M33kAuras.Rename=function(_,text) renamed=text end
-host:GetScript("OnEnterPressed")(host)
-T.expect(renamed=="Offscreen committed" and not entry.renaming and not host:HasFocus(),"Enter confirms an offscreen rename and releases its focus")
+input:GetScript("OnEnterPressed")(input)
+T.expect(renamed=="Offscreen committed" and not entry.renaming and not input:HasFocus(),"Enter confirms an offscreen rename and releases its focus")
 options.RevealDisplay(entry.data.id)
-entry:BeginRename();entry.row.renamebox:SetText("Cancelled draft")
+entry:BeginRename()
+input=entry.renameInput
+input:SetText("Cancelled draft")
 f.view:Render(1000)
-host:GetScript("OnEscapePressed")(host)
-T.expect(not entry.renaming and not host:HasFocus(),"Escape cancels an offscreen rename")
+input:GetScript("OnEscapePressed")(input)
+T.expect(not entry.renaming and not input:HasFocus(),"Escape cancels an offscreen rename")
 
 -- Import replaces the provider while the list pane is hidden.
 f.view:Render(1,0)

@@ -505,11 +505,6 @@ function OptionsPrivate.InitializeDisplayEntry(self)
       self:BeginRename()
     end
 
-    function self.callbacks.OnRenameAction(newid)
-      if (M33kAuras.IsImporting()) then return end;
-      self:SubmitRename(newid)
-    end
-
     function self.callbacks.OnDragStart()
       if M33kAuras.IsImporting() then return end;
       if not OptionsPrivate.IsDisplayPicked(self.data.id) then

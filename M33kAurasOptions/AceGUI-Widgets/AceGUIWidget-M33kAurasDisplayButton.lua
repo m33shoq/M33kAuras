@@ -194,14 +194,8 @@ local methods = {
   ["SetDescription"] = function(self, ...)
     self.frame.description = {...};
   end,
-  ["SetRenameAction"] = function(self, func)
-    self.renamebox.func = func
-  end,
   ["EnableGroup"] = function(self)
 
-  end,
-  ["SetIds"] = function(self, ids)
-    self.renamebox.ids = ids;
   end,
   ["SetGroup"] = function(self, group)
     self.frame.dgroup = group;
@@ -457,8 +451,6 @@ local methods = {
     self:Enable();
     self:SetGroup();
     self:ClearEntryCallbacks()
-    self.renamebox:ClearFocus()
-    self.renamebox:Hide();
     self.title:Show();
     self.frame:ClearAllPoints();
     self.frame:Hide();
@@ -520,14 +512,6 @@ local methods = {
     self.frame:RegisterForDrag("LeftButton")
     self.frame:SetScript("OnDragStart", self.callbacks.OnDragStart)
     self.frame:SetScript("OnDragStop", nil)
-    self:SetRenameAction(self.callbacks.OnRenameAction)
-    local entry = self.entry
-    self.renamebox:SetScript("OnTextChanged", function(box)
-      entry:SetRenameDraft(box:GetText())
-    end)
-    self.renamebox.cancel = function()
-      entry:CancelRename()
-    end
     self.group:SetScript("OnClick", self.callbacks.OnGroupClick)
     self.ungroup:SetScript("OnClick", self.callbacks.OnUngroupClick)
     self.upgroup:SetScript("OnClick", self.callbacks.OnUpGroupClick)
@@ -535,10 +519,6 @@ local methods = {
     self.view:SetScript("OnClick", self.callbacks.OnViewClick)
   end,
   ["ClearEntryCallbacks"] = function(self)
-    self.renamebox:SetScript("OnTextChanged", nil)
-    self.renamebox.cancel = nil
-    self.renamebox.func = nil
-    self.renamebox.ids = nil
     for _, script in ipairs({"OnEnter", "OnLeave", "OnClick", "OnDragStart", "OnDragStop", "OnUpdate", "OnKeyDown"}) do
       self.frame:SetScript(script, nil)
     end
@@ -580,11 +560,8 @@ local methods = {
     self:UpdateThumbnail()
     if entry.renaming then
       self.title:Hide()
-      self.renamebox:SetText(entry.renameText or entry.data.id)
-      self.renamebox:Show()
-      if entry:ConsumeRenameFocus() then self.renamebox:SetFocus() end
+      OptionsPrivate.AttachAuraRename(entry, self)
     else
-      self.renamebox:Hide()
       self.title:Show()
     end
   end,
@@ -653,38 +630,6 @@ local function Constructor()
   view:SetScript("OnLeave", Hide_Tooltip);
 
   view.visibility = 0;
-
-  local renamebox = CreateFrame("EditBox", nil, button, "InputBoxTemplate");
-  renamebox:SetHeight(14);
-  renamebox:SetPoint("TOP", button, "TOP");
-  renamebox:SetPoint("LEFT", icon, "RIGHT", 6, 0);
-  renamebox:SetPoint("RIGHT", button, "RIGHT", -4, 0);
-  renamebox:SetFont(STANDARD_TEXT_FONT, 10, "");
-  renamebox:Hide();
-
-  renamebox.func = function() --[[By default, do nothing!]] end;
-  renamebox:SetScript("OnEnterPressed", function()
-    local oldid = button.title:GetText();
-    local newid = renamebox:GetText();
-    if(newid == "" or (newid ~= oldid and M33kAuras.GetData(newid))) then
-      renamebox:SetText(button.title:GetText());
-    else
-      local submit = renamebox.func
-      -- The callback may recycle this row; finish reading and clearing its controls first.
-      renamebox:ClearFocus()
-      renamebox:Hide()
-      title:Show()
-      if submit then submit(newid) end
-    end
-  end);
-
-  renamebox:SetScript("OnEscapePressed", function()
-    local cancel = renamebox.cancel
-    renamebox:ClearFocus()
-    renamebox:Hide()
-    title:Show()
-    if cancel then cancel() end
-  end);
 
   local group = CreateFrame("Button", nil, button);
   button.group = group;
@@ -781,7 +726,6 @@ local function Constructor()
     title = title,
     icon = icon,
     view = view,
-    renamebox = renamebox,
     group = group,
     ungroup = ungroup,
     upgroup = upgroup,

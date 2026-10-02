@@ -115,23 +115,63 @@ function methods:ClearPick(noHide)
   self:RecheckParentVisibility()
 end
 
+local renameInputPool
+local function AcquireRenameInput(entry)
+  if not renameInputPool then
+    renameInputPool = CreateFramePool("EditBox", OptionsPrivate.ScrollBox, "InputBoxTemplate", function(_, box)
+      box:ClearFocus()
+      box:Hide()
+      box:ClearAllPoints()
+      box.entry = nil
+    end)
+  end
+  local box, isNew = renameInputPool:Acquire()
+  if isNew then
+    box:SetSize(1, 14)
+    box:SetAutoFocus(false)
+    box:SetFont(STANDARD_TEXT_FONT, 10, "")
+    box:SetScript("OnEditFocusGained", nil)
+    box:SetScript("OnTextChanged", function(input)
+      input.entry.renameText = input:GetText()
+    end)
+    box:SetScript("OnEnterPressed", function(input)
+      local current, text = input.entry, input:GetText()
+      if text == "" or (text ~= current.data.id and M33kAuras.GetData(text)) then
+        input:SetText(current.data.id)
+        return
+      end
+      current:SubmitRename(text)
+    end)
+    box:SetScript("OnEscapePressed", function(input)
+      input.entry:CancelRename()
+    end)
+  end
+  box.entry = entry
+  return box
+end
+
 function methods:BeginRename()
   -- Keep the search when a newly created aura is outside its results.
   if model.filter ~= "" and not model:Includes(self) then return end
   self.renaming = true
   self.renameText = self.data.id
-  self.renameFocusRequested = true
+  self.renameInput = self.renameInput or AcquireRenameInput(self)
+  self.renameInput:SetText(self.renameText)
+  OptionsPrivate.ParkAuraRename(self)
   OptionsPrivate.RevealDisplay(self.data.id, true)
   self:Refresh()
-end
-
-function methods:SetRenameDraft(text)
-  if self.renaming then self.renameText = text end
+  self.renameInput:Show()
+  self.renameInput:SetFocus()
+  self.renameInput:HighlightText()
 end
 
 function methods:CancelRename()
-  OptionsPrivate.ClearParkedAuraRename(self)
-  self.renaming, self.renameText, self.renameFocusRequested = nil, nil, nil
+  if self.renameInput then
+    renameInputPool:Release(self.renameInput)
+    self.renameInput = nil
+  end
+  self.renaming, self.renameText = nil, nil
+  if self.row then self.row.title:Show() end
 end
 
 function methods:SubmitRename(newid)
@@ -141,56 +181,25 @@ function methods:SubmitRename(newid)
   self:UpdateParentWarning()
 end
 
-function methods:RetainRenameFocus(hasFocus)
-  if self.renaming and hasFocus then self.renameFocusRequested = true end
-end
-
-function methods:ConsumeRenameFocus()
-  OptionsPrivate.ClearParkedAuraRename(self)
-  local requested = self.renameFocusRequested
-  self.renameFocusRequested = nil
-  return requested
-end
-
--- A focused EditBox cannot belong to a recyclable row while it is offscreen.
--- Transfer its input to this persistent host until the row returns.
-local parkedRename, renameInput
-function OptionsPrivate.ClearParkedAuraRename(entry)
-  if parkedRename ~= entry then return end
-  parkedRename = nil
-  renameInput:ClearFocus()
-  renameInput:Hide()
-end
-
+-- The editor belongs to the rename session, not the recyclable display button.
+-- Keep it shown and focused offscreen so native selection and cursor state survive.
 function OptionsPrivate.ParkAuraRename(entry)
-  if not renameInput then
-    renameInput = CreateFrame("EditBox", nil, OptionsPrivate.Private.OptionsFrame())
-    renameInput:SetSize(1, 1)
-    renameInput:SetPoint("TOPLEFT")
-    renameInput:SetAlpha(0)
-    renameInput:SetAutoFocus(false)
-    renameInput:SetFont(STANDARD_TEXT_FONT, 10, "")
-    renameInput:SetScript("OnTextChanged", function(box)
-      if parkedRename then parkedRename:SetRenameDraft(box:GetText()) end
-    end)
-    renameInput:SetScript("OnEnterPressed", function(box)
-      local current, text = parkedRename, box:GetText()
-      if not current then return end
-      if text == "" or (text ~= current.data.id and M33kAuras.GetData(text)) then
-        box:SetText(current.data.id)
-        return
-      end
-      current:SubmitRename(text)
-    end)
-    renameInput:SetScript("OnEscapePressed", function()
-      local current = parkedRename
-      if current then current:CancelRename(); current:Refresh() end
-    end)
-  end
-  parkedRename = entry
-  renameInput:SetText(entry.renameText or entry.data.id)
-  renameInput:Show()
-  renameInput:SetFocus()
+  local box = entry.renameInput
+  box:ClearAllPoints()
+  box:SetPoint("TOPLEFT", OptionsPrivate.ScrollBox, "TOPLEFT")
+  box:SetAlpha(0)
+  box:EnableMouse(false)
+end
+
+function OptionsPrivate.AttachAuraRename(entry, row)
+  local box = entry.renameInput
+  box:ClearAllPoints()
+  box:SetPoint("TOP", row.frame, "TOP")
+  box:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
+  box:SetPoint("RIGHT", row.frame, "RIGHT", -4, 0)
+  box:SetFrameLevel(row.frame:GetFrameLevel() + 1)
+  box:SetAlpha(1)
+  box:EnableMouse(true)
 end
 
 function methods:MoveChild(direction)
@@ -354,10 +363,7 @@ function OptionsPrivate.ReleaseAuraListRow(container)
   local owned = container.owned
   container.widget, container.owned = nil, nil
   if widget.auraListContainer ~= container then return end
-  -- AceGUI:Release hides the frame before OnRelease, clearing EditBox focus.
-  -- Move the draft's focus while the row is still visible.
-  if widget.entry and widget.entry.renaming and widget.renamebox:HasFocus() then
-    widget.entry:RetainRenameFocus(true)
+  if widget.entry and widget.entry.renameInput then
     OptionsPrivate.ParkAuraRename(widget.entry)
   end
   widget.auraListContainer = nil
@@ -475,6 +481,11 @@ function OptionsPrivate.RefreshAuraList(filter)
   if OptionsPrivate.IsAuraListBusy() then frame.needsSort = true; return end
   refreshing = true
   model:Sync(M33kAurasSaved.displays, OptionsPrivate.Private.loaded, filter)
+  if renameInputPool then
+    for input in renameInputPool:EnumerateActive() do
+      if model.byUID[input.entry.uid] ~= input.entry then input.entry:CancelRename() end
+    end
+  end
   local provider = CreateTreeDataProvider()
   companionSections(frame, provider)
   local loaded = provider:Insert({widget = frame.loadedButton, height = 20})

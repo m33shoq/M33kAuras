@@ -6,6 +6,7 @@ function M.install(T)
   local fixture = {frames = {}, timers = {}, errors = {}, previews = {}, acquired = 0, released = 0}
   local function noop() end
   local frameMethods = {}
+  local focusedEditBox
   local function frame(parent)
     local f = {parent = parent, scripts = {}, events = {}, shown = true, enabled = true, width = 400, height = 400}
     return setmetatable(f, {__index = function(_, key)
@@ -33,6 +34,9 @@ function M.install(T)
   function frameMethods:GetFrameStrata() return "DIALOG" end
   function frameMethods:GetEffectiveScale() return 1 end
   function frameMethods:GetScale() return 1 end
+  function frameMethods:SetAlpha(alpha) self.alpha=alpha end
+  function frameMethods:GetAlpha() return self.alpha or 1 end
+  function frameMethods:EnableMouse(enabled) self.mouseEnabled=enabled end
   function frameMethods:CreateTexture() return frame(self) end
   function frameMethods:CreateFontString() return frame(self) end
   function frameMethods:CreateAnimationGroup() return frame(self) end
@@ -42,16 +46,43 @@ function M.install(T)
   function frameMethods:SetText(text)
     local changed = text ~= self.text
     self.text = text
+    if self.frameType=="EditBox" then
+      self.highlightStart,self.highlightEnd=0,0
+      self.cursorPosition=#text
+    end
     if changed and self.scripts.OnTextChanged then self.scripts.OnTextChanged(self) end
   end
   function frameMethods:GetText() return self.text or "" end
-  function frameMethods:SetFocus() self.focused=true end
+  function frameMethods:HighlightText(first,last)
+    self.highlightStart,self.highlightEnd=first or 0,last or #self:GetText()
+  end
+  function frameMethods:SetCursorPosition(position) self.cursorPosition=position end
+  function frameMethods:GetCursorPosition() return self.cursorPosition or 0 end
+  function frameMethods:SetFocus()
+    if self.focused then return end
+    if focusedEditBox then focusedEditBox:ClearFocus() end
+    focusedEditBox=self
+    self.focused=true
+    if self.scripts.OnEditFocusGained then self.scripts.OnEditFocusGained(self) end
+  end
   function frameMethods:HasFocus() return self.focused==true end
-  function frameMethods:ClearFocus() self.focused=false end
+  function frameMethods:ClearFocus()
+    if not self.focused then return end
+    self.focused=false
+    if focusedEditBox==self then focusedEditBox=nil end
+    if self.scripts.OnEditFocusLost then self.scripts.OnEditFocusLost(self) end
+  end
   function frameMethods:Enable() self.enabled=true end
   function frameMethods:Disable() self.enabled=false end
   function frameMethods:IsEnabled() return self.enabled end
-  function frameMethods:Hide() self.shown=false end
+  function frameMethods:Hide()
+    self.shown=false
+    local ancestor=focusedEditBox
+    while ancestor do
+      if ancestor==self then focusedEditBox:ClearFocus();break end
+      ancestor=ancestor:GetParent()
+    end
+  end
   function frameMethods:Show() self.shown=true end
   function frameMethods:IsRectValid() return self.rectValid~=false end
   function frameMethods:AdjustPointsOffset(x,y)
@@ -67,19 +98,38 @@ function M.install(T)
   function frameMethods:IsOwned(owner) return self.owner==owner end
   function frameMethods:SetOwner(owner) self.owner=owner end
   function frameMethods:GetOwner() return self.owner end
-  for _, key in ipairs({"ClearAllPoints","EnableMouse","EnableKeyboard","RegisterForDrag","RegisterForClicks","Stop","Play","AddLine","AddDoubleLine","ClearLines","ReleaseChildren"}) do frameMethods[key]=noop end
-  _G.CreateFrame=function(_,name,parent)
+  for _, key in ipairs({"ClearAllPoints","EnableKeyboard","RegisterForDrag","RegisterForClicks","Stop","Play","AddLine","AddDoubleLine","ClearLines","ReleaseChildren"}) do frameMethods[key]=noop end
+  _G.CreateFrame=function(frameType,name,parent,template)
     local f=frame(parent)
+    f.frameType=frameType
+    if template=="InputBoxTemplate" then
+      f:SetScript("OnEditFocusGained",function(self) self:HighlightText() end)
+      f:SetScript("OnEditFocusLost",function(self) self:HighlightText(0,0) end)
+    end
     if name then _G[name]=f end
     fixture.frames[#fixture.frames+1]=f
     return f
   end
-  _G.CreateFramePool=function(_,_,_,reset)
-    local free={}
-    return {Acquire=function() return table.remove(free) or frame() end, Release=function(self,f)
-      if reset then reset(self,f) else f:Hide();f:ClearAllPoints() end
-      free[#free+1]=f
-    end}
+  _G.CreateFramePool=function(frameType,parent,template,reset)
+    local free,active={},{}
+    return {
+      Acquire=function(self)
+        local f=table.remove(free)
+        local isNew=f==nil
+        f=f or CreateFrame(frameType,nil,parent,template)
+        if isNew then
+          if reset then reset(self,f) else f:Hide();f:ClearAllPoints() end
+        end
+        active[f]=true
+        return f,isNew
+      end,
+      Release=function(self,f)
+        active[f]=nil
+        if reset then reset(self,f) else f:Hide();f:ClearAllPoints() end
+        free[#free+1]=f
+      end,
+      EnumerateActive=function() return pairs(active) end,
+    }
   end
   _G.UIParent=frame()
   _G.GameTooltip=frame()
@@ -121,7 +171,6 @@ function M.install(T)
   function ace:Release(widget)
     -- AceGUI hides the frame before invoking the widget release method.
     widget.frame:Hide()
-    if widget.renamebox then widget.renamebox:ClearFocus() end
     widget:OnRelease()
     assert(widget.frame,"released widget lost its reusable frame")
     self.pools[widget.type][#self.pools[widget.type]+1]=widget

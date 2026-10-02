@@ -218,7 +218,7 @@ end}
 warningIcon:GetScript("OnClick")()
 fixture.view:Render(1000)
 T.expect(acquiredThumbnails>0 and acquiredThumbnails==releasedThumbnails,"every visible thumbnail is released when its row leaves the viewport")
-T.expect(not warningIcon:GetScript("OnClick") and not warnedRow.view:GetScript("OnClick") and not warnedRow.renamebox.func,
+T.expect(not warningIcon:GetScript("OnClick") and not warnedRow.view:GetScript("OnClick"),
   "released status icons and row controls retain no aura callbacks")
 local clearedUID
 fixture.private.ClearSounds=function(uid) clearedUID=uid end
