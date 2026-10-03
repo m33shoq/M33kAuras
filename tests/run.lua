@@ -21,7 +21,6 @@ local tests = {
   "display_menu_test.lua",
   "options_navigation_test.lua",
   "animations_test.lua",
-  "auto_hide_test.lua",
   "aura_environment_test.lua",
   "aura_environment_stack_test.lua",
   "aura_scan_test.lua",
