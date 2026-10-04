@@ -2001,17 +2001,18 @@ if M33kAuras.IsRetail() then
     Private.ScanForLoads(nil, "WA_DRAGONRIDING_UPDATE")
     Private.StopProfileSystem("load");
   end)
-  Private.callbacks:RegisterCallback("WA_SECRET_STATE_UPDATE", function ()
-    Private.StartProfileSystem("load");
-    Private.ScanForLoads(nil, "WA_SECRET_STATE_UPDATE")
-    Private.StopProfileSystem("load");
-  end)
-  Private.callbacks:RegisterCallback("WA_BOSSMOD_ENABLED_STATE_CHANGED", function ()
-    Private.StartProfileSystem("load");
-    Private.ScanForLoads(nil, "WA_BOSSMOD_ENABLED_STATE_CHANGED")
-    Private.StopProfileSystem("load");
-  end)
 end
+
+Private.callbacks:RegisterCallback("WA_SECRET_STATE_UPDATE", function ()
+  Private.StartProfileSystem("load");
+  Private.ScanForLoads(nil, "WA_SECRET_STATE_UPDATE")
+  Private.StopProfileSystem("load");
+end)
+Private.callbacks:RegisterCallback("WA_BOSSMOD_ENABLED_STATE_CHANGED", function ()
+  Private.StartProfileSystem("load");
+  Private.ScanForLoads(nil, "WA_BOSSMOD_ENABLED_STATE_CHANGED")
+  Private.StopProfileSystem("load");
+end)
 
 local unitLoadFrame = CreateFrame("Frame");
 Private.frames["Display Load Handling 2"] = unitLoadFrame;
