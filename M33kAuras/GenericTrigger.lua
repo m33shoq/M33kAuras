@@ -2030,6 +2030,7 @@ do
   -- shootStart, shootDuration = GetSpellCooldown(5019)
 
   local GCD_SPELLID = M33kAuras.IsForever() and 29515 or 61304
+  local GCD_CATEGORY = Constants.SpellCooldownConsts.GLOBAL_RECOVERY_CATEGORY
   local function CheckGCD()
     if C_Secrets.ShouldSpellCooldownBeSecret(GCD_SPELLID) then return end
     local event;
@@ -2109,6 +2110,7 @@ do
     local info = C_Spell.GetSpellCooldown(id)
     local previous = spellReadiness[id]
     local restricted = C_Secrets.ShouldSpellCooldownBeSecret(id)
+    local inRecovery = info and info.timeUntilEndOfStartRecovery ~= nil
     local ready
     if info then
       if info.isEnabled == false then
@@ -2123,12 +2125,13 @@ do
           ready = info.duration == 0 or info.startTime + info.duration <= GetTime()
             or (info.startTime == gcdStart and info.duration == gcdDuration)
         end
-      elseif not fromCooldownEvent and previous and previous.restricted == restricted
+      elseif not fromCooldownEvent and previous and previous.ready ~= nil and previous.restricted == restricted
         and previous.active == info.isActive and previous.enabled == info.isEnabled
+        and previous.inRecovery == inRecovery
       then
-        -- Unrelated refreshes retain the last event's classification. A change
-        -- in activity or secrecy needs fresh evidence before reporting ready.
         ready = previous.ready
+      elseif info.isOnGCD == nil then
+        ready = not inRecovery
       end
     end
     spellReadiness[id] = {
@@ -2136,6 +2139,7 @@ do
       active = info and info.isActive,
       enabled = info and info.isEnabled,
       restricted = restricted,
+      inRecovery = inRecovery,
     }
   end
 
@@ -2779,8 +2783,9 @@ do
       then
         local spellId, baseSpellId
         if event == "SPELL_UPDATE_COOLDOWN" then
-          local arg1, arg2 = ...
-          if arg1 and type(arg1) == "number" then
+          local arg1, arg2, _, startRecoveryCategory = ...
+          local isGCD = arg1 == GCD_SPELLID or startRecoveryCategory == GCD_CATEGORY
+          if arg1 and type(arg1) == "number" and not isGCD then
             spellId = arg1
             baseSpellId = arg2
           else

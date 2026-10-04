@@ -48,6 +48,7 @@ local function fixture()
   end
   local env = setmetatable({M33kAuras = wa, Private = private, CreateFrame = frame,
     GetTime = function() return f.now end, issecretvalue = issecret, hasanysecretvalues = hassecret,
+    Constants = {SpellCooldownConsts = {GLOBAL_RECOVERY_CATEGORY = 133}},
     abs = math.abs, C_Secrets = {ShouldSpellCooldownBeSecret = function(id)
       return id == 61304 or id == 29515 or (f.spells[id] and f.spells[id].secret) or false
     end},
@@ -190,7 +191,10 @@ T.expect(f:count("SPELL_COOLDOWN_READY", 40) == 1, "repeated ready observations 
 T.expect(f.wa.IsSpellReady(40) == true, "unrelated refresh preserves authoritative event classification")
 f.spells[40].info.isOnGCD = nil
 f:send("SPELL_UPDATE_COOLDOWN", 40)
-T.expect(f.wa.IsSpellReady(40) == nil, "active secret cooldown without event classification stays unknown")
+T.expect(f.wa.IsSpellReady(40) == true, "absent GCD classification and recovery retain the pre-m90 ready fallback")
+f.spells[40].info = nil
+f:send("SPELL_UPDATE_COOLDOWN", 40)
+f:add(40, true, false)
 f.spells[40].info.isActive = false
 f.spells[40].info.isOnGCD = false
 f:send("SPELL_UPDATE_COOLDOWN", 40)
@@ -231,6 +235,90 @@ T.expect(not visible("showOnReady") and visible("showOnCooldown"), "known cooldo
 f.spells[45].info.isActive = false
 f:send("SPELL_UPDATE_COOLDOWN", 45)
 T.expect(visible("showOnReady") and not visible("showOnCooldown"), "known ready matches only Ready")
+
+T.section("Issue 13: shared GCD and recovery transitions")
+f.wa.WatchItemCooldown(1000)
+for _, eventSpellId in ipairs({999, 61304}) do
+  f.spells[45].info.isActive = true
+  f.spells[45].info.isOnGCD = true
+  f:reset()
+  local oldItems = f.items
+  f:send("ACTIONBAR_UPDATE_COOLDOWN")
+  f:send("SPELL_UPDATE_COOLDOWN", eventSpellId, nil, nil, eventSpellId == 999 and 133 or nil)
+  T.expect(f:count("SPELL_COOLDOWN_CHANGED", 45) == 1 and f.wa.IsSpellReady(45) == true,
+    "GCD event from another spell refreshes the watched spell synchronously: " .. eventSpellId)
+  T.expect(not f.frame.shown and f.items > oldItems, "GCD refresh also satisfies pending action-bar work")
+  T.expect(visible("showOnReady") and not visible("showOnCooldown"), "GCD alone does not show a cooldown-only aura")
+  f.spells[45].info.isOnGCD = false
+  f:send("ACTIONBAR_UPDATE_COOLDOWN")
+  f.frame:OnUpdate(0.016)
+  T.expect(visible("showOnReady") and not visible("showOnCooldown"),
+    "deferred refresh does not turn a classified GCD into a spell cooldown")
+  f.spells[45].info.isActive = false
+  f:send("SPELL_UPDATE_COOLDOWN", 61304)
+  T.expect(f.wa.IsSpellReady(45) == true and not visible("showOnCooldown"), "GCD end leaves the unused spell ready")
+  T.expect(f:count("SPELL_COOLDOWN_READY", 45) == 0, "GCD start and end do not report a completed spell cooldown")
+end
+
+f.spells[45].info.isActive = true
+f.spells[45].info.isOnGCD = nil
+f:send("SPELL_UPDATE_COOLDOWN", 45)
+T.expect(visible("showOnReady") and not visible("showOnCooldown"),
+  "missing GCD classification with no recovery does not invent a cooldown")
+for _, recovery in ipairs({secret, 0, 10}) do
+  f.spells[45].info.isOnGCD = true
+  f.spells[45].info.timeUntilEndOfStartRecovery = nil
+  f:send("SPELL_UPDATE_COOLDOWN", 45)
+  f:reset()
+  f.spells[45].info.isOnGCD = nil
+  f.spells[45].info.timeUntilEndOfStartRecovery = recovery
+  f:send("ACTIONBAR_UPDATE_COOLDOWN")
+  f.frame:OnUpdate(0.016)
+  T.expect(f.wa.IsSpellReady(45) == false and not visible("showOnReady") and visible("showOnCooldown"),
+    "recovery presence replaces cached GCD readiness without reading its value")
+  f:send("SPELL_UPDATE_COOLDOWN", 45)
+  T.expect(f:count("SPELL_COOLDOWN_READY", 45) == 0, "entering recovery never emits a ready event")
+  f.spells[45].info.timeUntilEndOfStartRecovery = nil
+  f:send("SPELL_UPDATE_COOLDOWN", 45)
+  f:send("SPELL_UPDATE_COOLDOWN", 45)
+  T.expect(f:count("SPELL_COOLDOWN_READY", 45) == 1 and not visible("showOnCooldown"),
+    "recovery completion restores ready and emits one completion event")
+end
+
+f.spells[45].info.isOnGCD = true
+f:send("SPELL_UPDATE_COOLDOWN", 45)
+f.spells[45].info.timeUntilEndOfStartRecovery = secret
+f:send("SPELL_UPDATE_USABLE")
+T.expect(f.wa.IsSpellReady(45) ~= true and not visible("showOnReady"),
+  "changed recovery invalidates cached ready even with an untrustworthy non-nil GCD flag")
+f.spells[45].info.isOnGCD = false
+f:send("SPELL_UPDATE_COOLDOWN", 45)
+f:reset()
+f:send("SPELL_UPDATE_COOLDOWN", 999, nil, nil, 133)
+T.expect(f.wa.IsSpellReady(45) == false and visible("showOnCooldown") and f:count("SPELL_COOLDOWN_READY", 45) == 0,
+  "another spell's GCD does not mark a real cooldown ready")
+
+for _, ready in ipairs({false, true}) do
+  for _, inRecovery in ipairs({false, true}) do
+    f.spells[45].info.isOnGCD = ready
+    f.spells[45].info.timeUntilEndOfStartRecovery = inRecovery and secret or nil
+    f:send("SPELL_UPDATE_COOLDOWN", 45)
+    f:reset()
+    f.spells[45].info.isOnGCD = nil
+    f:send("ACTIONBAR_UPDATE_COOLDOWN")
+    f.frame:OnUpdate(0.016)
+    T.expect(f.wa.IsSpellReady(45) == ready and visible("showOnReady") == ready
+      and visible("showOnCooldown") ~= ready and f:count("SPELL_COOLDOWN_READY", 45) == 0,
+      "missing classification outside the event preserves unchanged cooldown evidence: ready="
+      .. tostring(ready) .. ", recovery=" .. tostring(inRecovery))
+  end
+end
+
+f:add(46, true, true)
+f:watch(46)
+f.spells[46].info.isOnGCD = nil
+f:send("SPELL_UPDATE_USABLE")
+T.expect(f.wa.IsSpellReady(46) == true, "an unknown initial snapshot does not suppress the recovery fallback")
 
 T.section("Readable timing and restriction transitions")
 f = fixture()
@@ -404,8 +492,11 @@ for _, before in ipairs({"ready", "cooldown", "unknown"}) do
     f:add(910, false, before ~= "ready")
     f:watch(910)
     f:add(910, true, before ~= "ready")
-    if before == "unknown" then f.spells[910].info.isOnGCD = nil end
-    f:send("SPELL_UPDATE_COOLDOWN", 910)
+    if before == "unknown" then
+      f:send("WA_SECRET_STATE_UPDATE")
+    else
+      f:send("SPELL_UPDATE_COOLDOWN", 910)
+    end
     f:reset()
     f:add(910, false, after ~= "ready")
     f:send("WA_SECRET_STATE_UPDATE")
@@ -452,5 +543,35 @@ for _, rawFirst in ipairs({true, false}) do
   end
   f:send("SPELL_UPDATE_COOLDOWN", 920)
   T.expect(resolutions == 0, "merged rank route still avoids resolution on the event path")
+end
+T.section("Recorded SPELL_UPDATE_COOLDOWN payloads")
+f = fixture()
+for _, id in ipairs({119381, 1464, 1269383, 1306635, 1295582}) do f:add(id, true, true) end
+f.overrides[1464] = 1269383
+f:watch(1464, true)
+for _, id in ipairs({119381, 1269383, 1306635, 1295582}) do f:watch(id) end
+for _, payload in ipairs({
+  {spell = 1269383, base = 1464, category = 0, recovery = 133, broad = true},
+  {spell = 1464, category = 0, recovery = 133, broad = true},
+  {spell = 1306635, category = 0, recovery = 0},
+  {spell = 1295582},
+  {broad = true},
+}) do
+  f:reset()
+  f:send("SPELL_UPDATE_COOLDOWN", payload.spell, payload.base, payload.category, payload.recovery, nil)
+  local description = tostring(payload.spell) .. ", " .. tostring(payload.base) .. ", "
+    .. tostring(payload.category) .. ", " .. tostring(payload.recovery) .. ", nil"
+  if payload.broad then
+    T.expect(f.reads[119381] == 2 and f.reads[1269383] == 2
+      and f:count("SPELL_COOLDOWN_CHANGED", 119381) == 1
+      and f:count("SPELL_COOLDOWN_CHANGED", 1464) == 1
+      and f:count("SPELL_COOLDOWN_CHANGED", 1269383) == 1,
+      "recorded GCD/full payload refreshes other spells and override subscribers once: " .. description)
+  else
+    T.expect(f.reads[119381] == nil and f.reads[1269383] == nil
+      and f:count("SPELL_COOLDOWN_CHANGED", payload.spell) == 1
+      and f:count("SPELL_COOLDOWN_CHANGED") == 1,
+      "recorded zero/nil recovery payload remains targeted: " .. description)
+  end
 end
 T.finish()
