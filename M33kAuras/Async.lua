@@ -51,7 +51,7 @@ local IsLoggedIn = IsLoggedIn
 ---@field startTime number
 ---@field Kill fun(self: AsyncThreadData)
 ---@field OnSuccess fun(self: AsyncThreadData, func: function) -- fires before finally
----@field Catch fun(self: AsyncThreadData, err: string)
+---@field Catch fun(self: AsyncThreadData, func: fun(err: string)): AsyncThreadData
 ---@field Finally fun(self: AsyncThreadData, func: function)
 ---@field ForceRun fun(self: AsyncThreadData, maxDuration?: number)
 
