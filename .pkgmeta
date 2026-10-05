@@ -9,7 +9,9 @@ externals:
   M33kAuras/Libs/Chomp: https://github.com/wow-rp-addons/Chomp.git
   M33kAuras/Libs/LibSharedMedia-3.0: https://repos.curseforge.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0
   M33kAuras/Libs/LibDataBroker-1.1: https://github.com/tekkub/libdatabroker-1-1
-  M33kAuras/Libs/LibCompress: https://repos.curseforge.com/wow/libcompress/trunk
+  M33kAuras/Libs/LibCompress:
+    url: https://github.com/galmok/LibCompress.git
+    tag: r87-release
   M33kAuras/Libs/LibDeflate: https://github.com/SafeteeWoW/LibDeflate
   M33kAuras/Libs/LibSpellRange-1.0: https://github.com/ascott18/LibSpellRange-1.0
   M33kAuras/Libs/LibRangeCheck-3.0: https://github.com/WeakAuras/LibRangeCheck-3.0/
