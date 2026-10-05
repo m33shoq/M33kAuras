@@ -25,6 +25,8 @@ local tDeleteItem = tDeleteItem
 local type = type
 local xpcall = xpcall
 local IsEncounterInProgress = C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress or IsEncounterInProgress
+local IsFalling = IsFalling
+local IsLoggedIn = IsLoggedIn
 
 -- FIFO multi stream Async Handler
 -- Streams are ran in parallel*(bless for pairs), but each stream is ran in FIFO order
@@ -80,6 +82,10 @@ AddonDB.AsyncEnvironment = setmetatable({}, {
 
 function AddonDB:IsThread(val)
 	return type(val) == "table" and val.type == "AsyncThreadData"
+end
+
+local function StrictTimeoutApplies()
+  return IsLoggedIn() and ((IsInInstance() and (InCombatLockdown() or IsFalling("player"))) or IsEncounterInProgress())
 end
 
 local function runThread(threadData, config, finalTime, globalStart)
@@ -168,7 +174,7 @@ local function runThread(threadData, config, finalTime, globalStart)
       return false, true -- we need a break to restart ipairs loop
     end
 
-    if globalStart and ((InCombatLockdown() or IsInInstance()) and (debugprofilestop() - globalStart > 100)) then
+    if StrictTimeoutApplies() and (debugprofilestop() - globalStart > 100) then
       return true
     end
   end
@@ -188,7 +194,7 @@ AsyncFrame:SetScript("OnUpdate", function(self, elapsed)
 					break -- we dont want to run this stream while there is sleeping coroutine
 				end
 
-				local maxExecutionTime = ((InCombatLockdown() and IsInInstance()) or IsEncounterInProgress()) and config.maxTimeCombat or config.maxTime
+				local maxExecutionTime = StrictTimeoutApplies() and config.maxTimeCombat or config.maxTime
 				local finalTime = debugprofilestop() + maxExecutionTime
 				local shouldReturn, shouldBreak = runThread(threadData, config, finalTime, globalStart)
         if shouldReturn then
@@ -259,7 +265,8 @@ local function ForceRun(self, maxDuration)
     return
   end
   local finalTime = debugprofilestop() + (maxDuration or math.huge)
-  runThread(self, config, finalTime)
+  local globalStart = debugprofilestop()
+  runThread(self, config, finalTime, globalStart)
 end
 
 --- @param config AsyncConfig
