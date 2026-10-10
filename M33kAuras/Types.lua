@@ -3753,7 +3753,6 @@ LSM:Register("sound", "Batman Punch", "Interface\\AddOns\\M33kAuras\\Media\\Soun
 LSM:Register("sound", "Bike Horn", "Interface\\AddOns\\M33kAuras\\Media\\Sounds\\BikeHorn.ogg")
 LSM:Register("sound", "Boxing Arena Gong", "Interface\\AddOns\\M33kAuras\\Media\\Sounds\\BoxingArenaSound.ogg")
 LSM:Register("sound", "Bleat", "Interface\\AddOns\\M33kAuras\\Media\\Sounds\\Bleat.ogg")
-LSM:Register("sound", "Cartoon Hop", "Interface\\AddOns\\M33kAuras\\Media\\Sounds\\CartoonHop.ogg")
 LSM:Register("sound", "Cat Meow", "Interface\\AddOns\\M33kAuras\\Media\\Sounds\\CatMeow2.ogg")
 LSM:Register("sound", "Kitten Meow", "Interface\\AddOns\\M33kAuras\\Media\\Sounds\\KittenMeow.ogg")
 LSM:Register("sound", "Robot Blip", "Interface\\AddOns\\M33kAuras\\Media\\Sounds\\RobotBlip.ogg")
