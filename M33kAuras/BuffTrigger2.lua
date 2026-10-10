@@ -2259,7 +2259,11 @@ local function EventHandler(frame, event, arg1, arg2, ...)
         tinsert(unitsToRemove, unit)
       end
     end
-  elseif event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ROLES_ASSIGNED" then
+  elseif event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ROLES_ASSIGNED" or event == "READY_CHECK"
+      or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST"
+  then
+    -- Releasing and returning can change visibility and alive filters without a
+    -- roster update. Recheck excluded members as well as their cached buffs.
     unitVisible = {}
     for unit in GetAllUnits("group", true, "PlayersAndPets") do
       RecheckActiveForUnitType("group", unit, deactivatedTriggerInfos)
@@ -2271,6 +2275,16 @@ local function EventHandler(frame, event, arg1, arg2, ...)
       end
     end
     ScanGroupRoleScanFunc(matchDataChanged)
+    if event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then
+      for unit in pairs(matchData) do
+        if not Private.multiUnitUnits.group[unit] then
+          ScanUnit(time, unit)
+          if not UnitExistsFixed(unit) then
+            tinsert(unitsToRemove, unit)
+          end
+        end
+      end
+    end
   elseif event == "UNIT_FLAGS" or event == "UNIT_NAME_UPDATE" or event == "PLAYER_FLAGS_CHANGED"
       or event == "PARTY_MEMBER_ENABLE" or event == "PARTY_MEMBER_DISABLE"
   then
@@ -2297,13 +2311,6 @@ local function EventHandler(frame, event, arg1, arg2, ...)
       ScanUnit(time, arg1)
     else
       ScanUnit(time, arg1, arg2)
-    end
-  elseif event == "PLAYER_ENTERING_WORLD" then
-    for unit in pairs(matchData) do
-      ScanUnit(time, unit)
-      if not UnitExistsFixed(unit) then
-        tinsert(unitsToRemove, unit)
-      end
     end
   elseif event == "ADDON_RESTRICTION_STATE_CHANGED" then
     local restrictionType, restrictionState = arg1, arg2
@@ -2378,10 +2385,13 @@ Buff2Frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 Buff2Frame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 Buff2Frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 Buff2Frame:RegisterEvent("GROUP_ROSTER_UPDATE")
+Buff2Frame:RegisterEvent("READY_CHECK")
 if M33kAuras.IsForever() then
   Buff2Frame:RegisterEvent("PLAYER_ROLES_ASSIGNED")
 end
 Buff2Frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+Buff2Frame:RegisterEvent("PLAYER_ALIVE")
+Buff2Frame:RegisterEvent("PLAYER_UNGHOST")
 Buff2Frame:RegisterEvent("PARTY_MEMBER_DISABLE")
 Buff2Frame:RegisterEvent("PARTY_MEMBER_ENABLE")
 Buff2Frame:RegisterEvent("UNIT_TARGETABLE_CHANGED")
