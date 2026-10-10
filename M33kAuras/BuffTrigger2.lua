@@ -2293,7 +2293,7 @@ local function EventHandler(frame, event, arg1, arg2, ...)
 
     -- arg1: unit
     -- arg2: unitAuraUpdateInfo
-    if arg2 == nil or issecretvalue(arg2.isFullUpdate) or arg2.isFullUpdate or issecretvalue(arg2.addedAuras) or issecretvalue(arg2.removedAuraInstanceIDs) or issecretvalue(arg2.updatedAuraInstanceIDs) then
+    if arg2 == nil or issecretvalue(arg2.isFullUpdate) or arg2.isFullUpdate or hasanysecretvalues(arg2.addedAuras, arg2.removedAuraInstanceIDs, arg2.updatedAuraInstanceIDs) then
       ScanUnit(time, arg1)
     else
       ScanUnit(time, arg1, arg2)
